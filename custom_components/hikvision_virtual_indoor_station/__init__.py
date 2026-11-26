@@ -99,10 +99,11 @@ async def async_setup_entry(
     station = IndoorStation(hass, entry, door, info, await _address(host))
     station.health = HealthCoordinator(hass, entry, door)
     # The door station just answered: no second request before the first interval
-    station.health.async_set_updated_data(None)
+    station.health.async_set_updated_data(info.outputs)
     entry.async_on_unload(
         station.health.async_add_listener(station.async_check_presence)
     )
+    entry.async_on_unload(station.health.async_add_listener(station.outputs_changed))
     try:
         station.sip = await sip.async_acquire(hass, station)
     except OSError as err:

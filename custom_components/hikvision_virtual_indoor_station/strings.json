@@ -104,6 +104,15 @@
                     "ringing": "Ringing",
                     "answered": "Answered"
                 }
+            },
+            "output": {
+                "name": "Output {output}",
+                "state": {
+                    "electric_lock": "Electric lock",
+                    "doorbell": "Doorbell",
+                    "disabled": "Disabled",
+                    "other": "Other"
+                }
             }
         }
     },
@@ -140,6 +149,9 @@
         },
         "wrong_device": {
             "message": "{host} now reaches another door station: reconfigure the entry with the address of this one."
+        },
+        "not_a_lock": {
+            "message": "Door {door} does not open: its output drives no lock ({use}). Set it to Electric Lock in the web page of the door station (Access Control → I/O Settings)."
         }
     },
     "issues": {

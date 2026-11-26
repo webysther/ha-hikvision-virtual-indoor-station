@@ -111,7 +111,7 @@ Users' automations and dashboards depend on what the integration exposes.
 - Never change unique IDs: entries are the serial of the door station
   (`Identity.stable_id`), as its device; entities are `<serial>_<key>`, with the
   keys `call`, `doorbell`, `sip_registered`, `camera`, `answer`, `hang_up`,
-  `reject` and `open_door_<number>`.
+  `reject`, `open_door_<number>` and `output_<number>`.
 - Never rename the custom elements (`custom:hikvision-indoor-station-card`, the strategy
   `custom:hikvision-indoor-station`) nor the keys of the card's configuration
   (`device_id`, `talk_mode`, `shortcuts`): they are in users' dashboards.

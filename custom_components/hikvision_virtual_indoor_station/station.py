@@ -9,6 +9,7 @@ never touches the next call), and open a door.
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import datetime, timedelta
 import time
 from typing import TYPE_CHECKING
@@ -148,6 +149,7 @@ class IndoorStation:
         return {
             "registered": self.registered,
             "doors": list(self.info.doors),
+            "locks": list(self.info.locks),
             "speaker": self.info.talk is not None,
             "call": None
             if call is None
@@ -183,6 +185,15 @@ class IndoorStation:
         self.call = call
         for listener in list(self._call_listeners):
             listener(call)
+        self._notify()
+
+    @callback
+    def outputs_changed(self) -> None:
+        """Take the outputs, read again: a door may have gained or lost its lock."""
+        outputs = self.health.data if self.health is not None else None
+        if outputs is None or outputs == self.info.outputs:
+            return
+        self.info = replace(self.info, outputs=outputs)
         self._notify()
 
     @callback
@@ -290,7 +301,14 @@ class IndoorStation:
             ) from err
 
     async def async_open_door(self, door: int = 1) -> None:
-        """Open a door through its lock relay."""
+        """Open a door through its lock relay; refuse one whose output has no lock."""
+        output = self.info.output_of(door)
+        if door not in self.info.locks and output is not None:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="not_a_lock",
+                translation_placeholders={"door": str(door), "use": output.use.value},
+            )
         try:
             await self.door.open_door(door)
         except BridgeFault as err:

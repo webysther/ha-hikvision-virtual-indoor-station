@@ -66,6 +66,7 @@ async def test_the_state_and_its_changes(
     assert first == {
         "registered": False,
         "doors": [1, 2],
+        "locks": [1, 2],
         "speaker": True,
         "call": None,
     }

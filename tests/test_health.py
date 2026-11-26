@@ -43,11 +43,11 @@ async def test_unavailable_while_the_door_does_not_answer(
     door: MagicMock,
 ) -> None:
     """The door station is asked once a minute; its entities follow its answer."""
-    door.check.side_effect = Unreachable("timeout")
+    door.read_outputs.side_effect = Unreachable("timeout")
     await tick(hass, freezer, 61)
     assert hass.states.get(CALL).state == STATE_UNAVAILABLE
     assert hass.states.get("camera.door_station").state == STATE_UNAVAILABLE
-    door.check.side_effect = None
+    door.read_outputs.side_effect = None
     await tick(hass, freezer, 61)
     assert hass.states.get(CALL).state == "idle"
 
@@ -59,7 +59,7 @@ async def test_a_refused_account_later(
     door: MagicMock,
 ) -> None:
     """The password changed on the door station: sign in again."""
-    door.check.side_effect = BadCredentials("no")
+    door.read_outputs.side_effect = BadCredentials("no")
     await tick(hass, freezer, 61)
     assert any(loaded.async_get_active_flows(hass, {"reauth"}))
 

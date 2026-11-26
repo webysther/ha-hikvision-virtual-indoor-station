@@ -176,8 +176,10 @@ desligue-a) e desinstale a integração pelo Marketplace.
 - **As chamadas chegam na hora**: o porteiro liga para o Home Assistant por SIP,
   e o sensor de chamada, o evento da campainha e os cards mudam no mesmo
   instante.
-- **Uma vez por minuto** o porteiro é perguntado quem ele é (uma requisição
-  pequena): as entidades dele ficam indisponíveis enquanto ele não responde.
+- **Uma vez por minuto** o porteiro é perguntado o que as saídas dele acionam
+  (uma requisição pequena): as entidades dele ficam indisponíveis enquanto ele
+  não responde, e uma porta cuja saída deixou de acionar uma fechadura deixa de
+  abrir.
 - **O registro**: o porteiro se registra a cada 10 minutos no máximo, e manda um
   keepalive a cada 20 segundos enquanto está registrado.
 - **A câmera** transmite sob demanda; a foto dela é tirada quando um dashboard
@@ -207,6 +209,9 @@ desligue-a) e desinstale a integração pelo Marketplace.
   G.711.
 - **A chamada cai sozinha depois de 90 segundos.** É o tempo de conversa do
   porteiro.
+- **O botão da porta 2 está indisponível.** A saída dela aciona uma campainha ou
+  nada (veja o sensor **Output** dela): mude para Electric Lock na página web do
+  porteiro (Access Control → I/O Settings).
 
 Ative os logs de depuração (**Configurações → Dispositivos e serviços →
 Hikvision Virtual Indoor Station → Habilitar registro de depuração**) e baixe os
@@ -227,7 +232,8 @@ conte como foi com o seu.
 | Doorbell (evento) | `ring`, `answered`, `rejected`, `missed`, `ended`, com o id da chamada |
 | Call (sensor) | `idle`, `ringing`, `answered` |
 | SIP registration (diagnóstico) | Ligado enquanto o porteiro consegue chamar o Home Assistant |
-| Open door (botão) | Um por porta, numerado quando há mais de uma |
+| Open door (botão) | Um por porta, numerado quando há mais de uma; indisponível enquanto a saída dela não aciona uma fechadura |
+| Output (diagnóstico) | O que uma saída configurável aciona: `electric_lock`, `doorbell`, `disabled` |
 | Answer, Hang up, Reject (botões) | Agem na chamada atual |
 
 Os nomes das entidades seguem o idioma do Home Assistant.

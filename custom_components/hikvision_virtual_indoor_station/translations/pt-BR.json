@@ -104,6 +104,15 @@
                     "ringing": "Tocando",
                     "answered": "Atendida"
                 }
+            },
+            "output": {
+                "name": "Saída {output}",
+                "state": {
+                    "electric_lock": "Fechadura elétrica",
+                    "doorbell": "Campainha",
+                    "disabled": "Desativada",
+                    "other": "Outro"
+                }
             }
         }
     },
@@ -140,6 +149,9 @@
         },
         "wrong_device": {
             "message": "{host} agora leva a outro porteiro: reconfigure a entrada com o endereço deste."
+        },
+        "not_a_lock": {
+            "message": "A porta {door} não abre: a saída dela não aciona uma fechadura ({use}). Mude para Electric Lock na página web do porteiro (Access Control → I/O Settings)."
         }
     },
     "issues": {

@@ -18,6 +18,7 @@ import {
   editorSchema,
   elapsed,
   keyName,
+  locksOf,
   openDoorMessage,
   screenOf,
   shortcutService,
@@ -97,6 +98,13 @@ describe("the doors", () => {
     assert.equal(doorName(hass, 2, 2), "Abrir porta 2");
     assert.equal(doorName(homeAssistant(["front"]), 2, 2), "Open door 2");
     assert.equal(doorName(homeAssistant(["front"]), 1, 1), "Open door");
+  });
+
+  it("open only when their output drives a lock", () => {
+    assert.deepEqual(locksOf({ ...snapshot(null), doors: [1, 2], locks: [1] }), [1]);
+    // A door station that does not say: every door is tried
+    assert.deepEqual(locksOf({ ...snapshot(null), doors: [1, 2] }), [1, 2]);
+    assert.deepEqual(locksOf(null), []);
   });
 
   it("open with the number of the door", () => {

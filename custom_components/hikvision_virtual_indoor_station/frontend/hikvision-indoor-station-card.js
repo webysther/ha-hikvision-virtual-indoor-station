@@ -48,7 +48,8 @@ export { CARD };
  *   answered_at?: string | null,
  *   ended_at?: string | null,
  * }} Call A call of the door station, as `subscribe` gives it.
- * @typedef {{ registered: boolean, doors: number[], speaker: boolean, call: Call | null }} Snapshot
+ * @typedef {{ registered: boolean, doors: number[], locks?: number[], speaker: boolean,
+ *   call: Call | null }} Snapshot
  *   The state of a door station, as `subscribe` gives it (IndoorStation.snapshot).
  * @typedef {"idle" | "ringing" | "answered"} CallState The states of the call sensor.
  * @typedef {"answer" | "reject" | "hang_up" | "monitor" | "talk" | "ring"} KeyName
@@ -248,6 +249,17 @@ export function callMessage(entryId, call, key) {
  */
 export function doorsOf(snapshot) {
   return snapshot?.doors ?? [];
+}
+
+/**
+ * Return the doors that open: those whose output drives a lock (not a doorbell, nor
+ * nothing), as the door station's I/O settings say.
+ *
+ * @param {Snapshot | null} snapshot
+ * @returns {number[]}
+ */
+export function locksOf(snapshot) {
+  return snapshot?.locks ?? doorsOf(snapshot);
 }
 
 /**
@@ -1041,6 +1053,7 @@ if (typeof customElements !== "undefined") {
     #renderExtra(hass, station) {
       const { extra } = /** @type {Parts} */ (this.#parts);
       const numbers = doorsOf(this.#snapshot);
+      const locks = locksOf(this.#snapshot);
       const entry = station.entry_id;
       const doors = numbers.map((door) => {
         const button = keyElement("key");
@@ -1048,7 +1061,8 @@ if (typeof customElements !== "undefined") {
           icon: "mdi:key-variant",
           name: doorName(hass, door, numbers.length),
           className: "key",
-          enabled: Boolean(entry) && this.#busy === null,
+          // A door whose output rings a doorbell, or drives nothing, does not open
+          enabled: Boolean(entry) && this.#busy === null && locks.includes(door),
         });
         button.addEventListener(
           "click",

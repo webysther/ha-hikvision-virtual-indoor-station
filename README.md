@@ -173,8 +173,9 @@ uninstall the integration from the Marketplace.
 
 - **Calls are pushed**, as they happen: the door station calls Home Assistant over
   SIP, and the call sensor, the doorbell event and the cards change at once.
-- **Once a minute** the door station is asked who it is (one small request): its
-  entities are unavailable while it does not answer.
+- **Once a minute** the door station is asked what its outputs drive (one small
+  request): its entities are unavailable while it does not answer, and a door
+  whose output no longer drives a lock no longer opens.
 - **The registration**: the door station registers every 10 minutes at most, and
   sends a keepalive every 20 seconds while it does.
 - **The camera** streams on demand; its picture is taken when a dashboard asks.
@@ -203,6 +204,9 @@ uninstall the integration from the Marketplace.
   to G.711 only.
 - **The call ends by itself after 90 seconds.** That is the talk time of the door
   station.
+- **The button of door 2 is unavailable.** Its output rings a doorbell or drives
+  nothing (see its **Output** sensor): set it to Electric Lock in the web page of
+  the door station (Access Control → I/O Settings).
 
 Enable debug logs (**Settings → Devices & services → Hikvision Virtual Indoor
 Station → Enable debug logging**) and download the diagnostics before opening an
@@ -223,7 +227,8 @@ please report yours.
 | Doorbell (event) | `ring`, `answered`, `rejected`, `missed`, `ended`, with the call's id |
 | Call (sensor) | `idle`, `ringing`, `answered` |
 | SIP registration (diagnostic) | On while the door station can call Home Assistant |
-| Open door (button) | One per door, numbered when there are several |
+| Open door (button) | One per door, numbered when there are several; unavailable while its output drives no lock |
+| Output (diagnostic) | What a changeable output drives: `electric_lock`, `doorbell`, `disabled` |
 | Answer, Hang up, Reject (buttons) | Act on the current call |
 
 ## Automation examples

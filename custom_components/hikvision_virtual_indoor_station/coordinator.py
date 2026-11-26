@@ -1,8 +1,9 @@
 """Whether the door station answers: its entities are unavailable while it does not.
 
-The calls are pushed over SIP; this only asks the door station who it is, once a
-minute (HEALTH_INTERVAL), and lets the station check whether its door still calls
-Home Assistant.
+The calls are pushed over SIP; this only asks the door station what its outputs drive,
+once a minute (HEALTH_INTERVAL): one small request, which tells whether it answers and
+whether a door gained or lost its lock (its web page can change it at any time). It
+also lets the station check whether its door still calls Home Assistant.
 """
 
 from __future__ import annotations
@@ -10,7 +11,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from aiohikvision import DoorStation
+from aiohikvision import DoorStation, Output
 from aiohikvision.isapi.wire.faults import BadCredentials, BridgeFault, LockedOut
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -24,8 +25,8 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
-class HealthCoordinator(DataUpdateCoordinator[None]):
-    """Ask the door station who it is, once a minute."""
+class HealthCoordinator(DataUpdateCoordinator[tuple[Output, ...]]):
+    """Ask the door station what its outputs drive, once a minute."""
 
     def __init__(
         self, hass: HomeAssistant, entry: ConfigEntry, door: DoorStation
@@ -40,10 +41,10 @@ class HealthCoordinator(DataUpdateCoordinator[None]):
         )
         self.door = door
 
-    async def _async_update_data(self) -> None:
+    async def _async_update_data(self) -> tuple[Output, ...]:
         """Ask the door station; a refused account asks to sign in again."""
         try:
-            await self.door.check()
+            return await self.door.read_outputs()
         except (BadCredentials, LockedOut) as err:
             raise ConfigEntryAuthFailed(
                 translation_domain=DOMAIN,

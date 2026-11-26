@@ -6,8 +6,9 @@ rules:
   appropriate-polling:
     status: done
     comment: >-
-      The calls are pushed over SIP. The door station is only asked who it is once a
-      minute (one small ISAPI request), to know whether it answers.
+      The calls are pushed over SIP. The door station is only asked what its outputs
+      drive once a minute (one small ISAPI request), to know whether it answers and
+      whether a door gained or lost its lock.
   brands:
     status: done
     comment: >-
@@ -98,8 +99,9 @@ rules:
   entity-disabled-by-default:
     status: exempt
     comment: >-
-      Every entity is a control or a state of the indoor station; the one diagnostic
-      entity, the SIP registration, tells whether the door station can call at all.
+      Every entity is a control or a state of the indoor station; the diagnostic
+      entities tell whether the door station can call at all (the SIP registration)
+      and why a door does not open (what its output drives).
   entity-translations: done
   exception-translations: done
   icon-translations: done

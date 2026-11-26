@@ -49,6 +49,15 @@
                     "ringing": "mdi:phone-ring",
                     "answered": "mdi:phone-in-talk"
                 }
+            },
+            "output": {
+                "default": "mdi:electric-switch",
+                "state": {
+                    "electric_lock": "mdi:lock",
+                    "doorbell": "mdi:bell-ring",
+                    "disabled": "mdi:cancel",
+                    "other": "mdi:help-circle-outline"
+                }
             }
         }
     }

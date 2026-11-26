@@ -20,6 +20,7 @@ from aiohikvision import (
     EndReason,
     TalkbackStats,
 )
+from aiohikvision.isapi.model.features.outputs import Output, OutputUse
 from aiohikvision.isapi.model.features.talk import TalkChannel
 from aiohikvision.isapi.model.inventory import Identity
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME
@@ -49,6 +50,10 @@ INFO = DoorStationInfo(
     doors=(1, 2),
     call_status=True,
     talk=TalkChannel("1", "G.711ulaw"),
+    outputs=(
+        Output(1, "COM1", OutputUse.ELECTRIC_LOCK),
+        Output(2, "COM2", OutputUse.ELECTRIC_LOCK),
+    ),
 )
 UNIQUE_ID = IDENTITY.stable_id
 ENTRY_DATA = {
@@ -189,6 +194,7 @@ def door() -> Generator[MagicMock]:
         station = door_class.return_value
         station.read_info.return_value = INFO
         station.info = INFO
+        station.read_outputs.return_value = INFO.outputs
         station.rtsp_url.return_value = (
             f"rtsp://admin:s3cret-pass@{DOOR_IP}:554/Streaming/Channels/101"
         )

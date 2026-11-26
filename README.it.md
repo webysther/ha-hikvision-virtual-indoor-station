@@ -179,8 +179,10 @@ disinstalla l'integrazione dal Marketplace.
 - **Le chiamate arrivano subito**: il citofono chiama Home Assistant via SIP, e
   il sensore della chiamata, l'evento del campanello e le schede cambiano
   all'istante.
-- **Una volta al minuto** al citofono viene chiesto chi è (una piccola
-  richiesta): le sue entità non sono disponibili finché non risponde.
+- **Una volta al minuto** al citofono viene chiesto cosa comandano le sue
+  uscite (una piccola richiesta): le sue entità non sono disponibili finché non
+  risponde, e una porta la cui uscita non comanda più una serratura non si apre
+  più.
 - **La registrazione**: il citofono si registra al massimo ogni 10 minuti, e
   manda un keepalive ogni 20 secondi mentre è registrato.
 - **La telecamera** trasmette su richiesta; la sua foto viene scattata quando
@@ -212,6 +214,9 @@ disinstalla l'integrazione dal Marketplace.
   citofono solo su G.711.
 - **La chiamata si chiude da sola dopo 90 secondi.** È il tempo di conversazione
   del citofono.
+- **Il pulsante della porta 2 non è disponibile.** La sua uscita comanda un
+  campanello o niente (vedi il suo sensore **Output**): impostala su Electric
+  Lock nella pagina web del citofono (Access Control → I/O Settings).
 
 Attiva i log di debug (**Impostazioni → Dispositivi e servizi → Hikvision Virtual
 Indoor Station → Abilita la registrazione di debug**) e scarica la diagnostica
@@ -232,7 +237,8 @@ funzionare; segnala il tuo.
 | Doorbell (evento) | `ring`, `answered`, `rejected`, `missed`, `ended`, con l'id della chiamata |
 | Call (sensore) | `idle`, `ringing`, `answered` |
 | SIP registration (diagnostica) | Acceso finché il citofono può chiamare Home Assistant |
-| Open door (pulsante) | Uno per porta, numerati quando sono più di una |
+| Open door (pulsante) | Uno per porta, numerati quando sono più di una; non disponibile finché la sua uscita non comanda una serratura |
+| Output (diagnostica) | Cosa comanda un'uscita configurabile: `electric_lock`, `doorbell`, `disabled` |
 | Answer, Hang up, Reject (pulsanti) | Agiscono sulla chiamata in corso |
 
 I nomi delle entità seguono la lingua di Home Assistant.

@@ -65,6 +65,11 @@ class OpenDoorButton(IndoorStationEntity, ButtonEntity):
         else:
             self._attr_translation_key = "open_door"
 
+    @property
+    def available(self) -> bool:
+        """Unavailable while its output drives no lock (a doorbell, or nothing)."""
+        return super().available and self.door in self.station.info.locks
+
     async def async_press(self) -> None:
         """Open the door."""
         await self.station.async_open_door(self.door)

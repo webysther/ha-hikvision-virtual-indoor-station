@@ -104,6 +104,15 @@
                     "ringing": "Squilla",
                     "answered": "In corso"
                 }
+            },
+            "output": {
+                "name": "Uscita {output}",
+                "state": {
+                    "electric_lock": "Serratura elettrica",
+                    "doorbell": "Campanello",
+                    "disabled": "Disattivata",
+                    "other": "Altro"
+                }
             }
         }
     },
@@ -140,6 +149,9 @@
         },
         "wrong_device": {
             "message": "{host} ora raggiunge un altro posto esterno: riconfigura la voce con l'indirizzo di questo."
+        },
+        "not_a_lock": {
+            "message": "La porta {door} non si apre: la sua uscita non comanda una serratura ({use}). Impostala su Electric Lock nella pagina web del citofono (Access Control → I/O Settings)."
         }
     },
     "issues": {

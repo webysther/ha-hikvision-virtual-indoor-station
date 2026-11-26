@@ -59,10 +59,19 @@ station.
 - The README in Italian and Brazilian Portuguese, with a section on the
   dashboard and the card.
 
+- A door opens only when its output drives a lock: the door stations list every
+  door they can open remotely, even one whose relay rings a doorbell or drives
+  nothing (Access Control → I/O Settings). Its button is unavailable, the card's
+  key is off, and an **Output** diagnostic sensor tells what each changeable
+  output drives (electric lock, doorbell, disabled). The outputs are read once a
+  minute, as the door station's web page can change them.
+
 ### Changed since 2026.11.0b1
 
-- Requires aiohikvision 0.1.1: door stations reached over HTTPS keep the TLS
-  settings of Home Assistant's session.
+- Requires aiohikvision 0.1.2: door stations reached over HTTPS keep the TLS
+  settings of Home Assistant's session, and what the outputs drive is read.
+- The door station is asked what its outputs drive once a minute, in place of who
+  it is: still one small request.
 - The integration is in the **Doorbells and intercoms** category.
 - The code is now under the MIT license.
 - **Visit** on the device page opens the web page of the door station over
