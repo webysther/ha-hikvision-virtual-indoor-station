@@ -211,6 +211,48 @@ See [AGENTS.md](https://github.com/webysther/ha-hikvision-virtual-indoor-station
 how the integration is laid out, its checks and its conventions. The protocol lives
 in [aiohikvision](https://github.com/webysther/aio-hikvision).
 
+## Related projects
+
+Other projects that bring Hikvision devices to Home Assistant. If you use one of
+them for a door station, give this integration a try: it does the indoor station
+in one integration, locally, with no add-on, MQTT broker or cloud account. For
+cameras and recorders, try [Hikvision Bridge](https://github.com/yannik2480/hikvision_bridge),
+which can be installed next to this integration.
+
+Door stations and intercoms:
+
+- [Hikvision Bridge](https://github.com/yannik2480/hikvision_bridge): cameras,
+  recorders and door stations over local ISAPI (events, live streams,
+  recordings, doors). The ISAPI code of
+  [aiohikvision](https://github.com/webysther/aio-hikvision) comes from it.
+- [Hikvision-Addons](https://github.com/pergolafabio/Hikvision-Addons): an add-on
+  built on the Hikvision SDK that exposes the doorbell over MQTT, to answer,
+  refuse and hang up calls and open the doors.
+- [SIP Indoor Station](https://github.com/arturzx/sip-indoor-station): a SIP
+  server and WebRTC audio bridge for SIP door stations, with its
+  [integration](https://github.com/arturzx/sip-indoor-station-integration),
+  [card](https://github.com/arturzx/sip-indoor-station-card) and
+  [add-on](https://github.com/arturzx/hass-addons) in separate repositories.
+- [Hikvision Doorbell Integration](https://github.com/acardace/hikvision-doorbell-integration):
+  WebRTC two-way audio over ISAPI, with its
+  [server](https://github.com/acardace/hikvision-doorbell-server).
+- [Hikvision Intercom](https://github.com/schmidt-gabriel/hikvision-intercom-hass-integration):
+  doorbell detection and doors over ISAPI.
+- [Hikvision Intercom (2-wire)](https://github.com/TimLuist1/hikvision-intercom):
+  2-wire intercoms through the Hikvision SDK.
+- [Hik-Connect](https://github.com/tomasbedrich/home-assistant-hikconnect): smart
+  doorbells through the Hik-Connect cloud.
+- [Intercom HomeKit](https://github.com/DmytryS/intercom-homekit): an add-on
+  that makes a door station an Apple HomeKit video doorbell.
+
+Cameras and recorders:
+
+- [Hikvision](https://www.home-assistant.io/integrations/hikvision/), the
+  integration that ships with Home Assistant, built on
+  [pyHik](https://github.com/mezz64/pyHik).
+- [Hikvision NVR / IP cameras](https://github.com/maciej-or/hikvision_next)
+  (`hikvision_next`).
+
 ## License
 
 The code is under the
