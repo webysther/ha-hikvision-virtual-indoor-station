@@ -110,18 +110,21 @@ export function callStateName(hass, state) {
 /**
  * Return the label over the screen: the state of the call, with its time once answered,
  * or "Live" while someone monitors the door (the line is idle, but the screen is not).
+ * An idle line with nobody watching has nothing to say, so it has no label.
  *
  * @param {Hass} hass
  * @param {CallState} state
  * @param {{ monitoring?: boolean, answeredAt?: string | null, now?: number }} [more]
- * @returns {{ text: string, tone: CallState | "live" }}
+ * @returns {{ text: string, tone: CallState | "live" } | null}
  */
 export function screenLabel(
   hass,
   state,
   { monitoring = false, answeredAt, now = Date.now() } = {},
 ) {
-  if (state === "idle" && monitoring) return { text: textsIn(hass.language).live, tone: "live" };
+  if (state === "idle") {
+    return monitoring ? { text: textsIn(hass.language).live, tone: "live" } : null;
+  }
   const time = state === "answered" ? elapsed(answeredAt, now) : null;
   return { text: [callStateName(hass, state), time].filter(Boolean).join(" "), tone: state };
 }
@@ -1019,14 +1022,14 @@ if (typeof customElements !== "undefined") {
       if (talking && !talkable) this.#stopTalk();
       parts.keys.hidden = false;
       parts.keys.classList.toggle("no-names", this.#config.show_name === false);
-      parts.state.hidden = false;
       parts.name.textContent = station.name;
       const label = screenLabel(hass, state, {
         monitoring: this.#monitoring,
         answeredAt: this.#snapshot?.call?.answered_at,
       });
-      parts.state.className = `chip ${label.tone}`;
-      parts.state.textContent = label.text;
+      parts.state.hidden = label === null;
+      parts.state.className = `chip ${label?.tone ?? ""}`.trim();
+      parts.state.textContent = label?.text ?? "";
       this.#tick(state === "answered");
       this.#ring(state === "ringing" && !this.#ringMuted);
       const warnings = [];

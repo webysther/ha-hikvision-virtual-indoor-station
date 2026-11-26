@@ -35,8 +35,9 @@ station.
   each phone may do, not who it is.
 - The indoor station card (`custom:hikvision-indoor-station-card`), in the card
   picker: a standard card of the theme, laid out like an indoor station. The
-  door's camera is on top, with the name and the state of the call (**Live**
-  while monitoring); its picture keeps the shape of the live video. The keys
+  door's camera is on top, with the name and the state of the call while there
+  is one (**Live** while monitoring, nothing while the line is free); its
+  picture keeps the shape of the live video. The keys
   under it are always in the same places and lit when they can be pressed:
   Answer (green), Hang up (red, refusing a call that rings), Monitor, Push to
   talk and the ringer. The camera plays live while the door rings, during a call

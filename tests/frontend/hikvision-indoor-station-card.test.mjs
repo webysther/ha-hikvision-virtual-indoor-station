@@ -70,7 +70,8 @@ describe("callStateOf", () => {
       }),
       language: "pt-BR",
     };
-    assert.deepEqual(screenLabel(hass, "idle"), { text: "Livre", tone: "idle" });
+    // An idle line with nobody watching shows no label at all
+    assert.equal(screenLabel(hass, "idle"), null);
     // Monitoring shows the door live: the line is idle, the screen is not
     assert.deepEqual(screenLabel(hass, "idle", { monitoring: true }), {
       text: TEXTS["pt-BR"].live,
