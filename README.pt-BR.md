@@ -55,6 +55,8 @@ atende, fala, desliga ou recusa a chamada, e abre a porta.
   junto com a chamada; fora dela, pelo alto-falante do porteiro.
 - **Veja e ouça o visitante**: a câmera do porteiro, com o som, tocada por WebRTC.
 - **Abra as portas** ligadas ao porteiro, um botão para cada uma.
+- **Os seus celulares tocam junto com a porta**: uma notificação com a foto da
+  porta, mesmo em modo foco, com **Atender**, **Abrir porta** e **Recusar**.
 - **Sabe quando a porta não consegue chamar**: um sensor do registro SIP e um
   reparo que explica como apontar o porteiro para o Home Assistant.
 
@@ -164,12 +166,41 @@ Os navegadores seguram o som de uma página até alguém tocar nela: o card pede
 toque quando a porta toca antes disso. Para falar, o Home Assistant precisa estar
 aberto por HTTPS.
 
+## Celulares
+
+Cada celular com o app do Home Assistant pode tocar junto com um porteiro:
+**Configurações → Dispositivos e serviços → Hikvision Virtual Indoor Station**, e
+**Adicionar celular** no porteiro.
+
+| Campo | O que faz |
+| --- | --- |
+| Celular | Um dispositivo do app do Home Assistant (Mobile App) |
+| Não perturbe | O celular não é avisado quando este porteiro toca |
+| Pode abrir a porta | A notificação tem um botão que abre a porta |
+
+Os dois últimos podem ser mudados depois (**Reconfigurar** no celular);
+adicionar ou mudar um celular não interrompe uma chamada. Quando a porta toca,
+cada celular recebe uma notificação com a foto da porta, entregue na hora
+(time-sensitive no iOS, prioridade alta no Android), com:
+
+- **Atender**: abre o painel do monitor interno, uma página com o card do
+  porteiro, que atende aquela chamada;
+- **Abrir porta**: abre a primeira porta com fechadura, em segundo plano (o
+  iPhone pede para ser desbloqueado antes);
+- **Recusar**: o porteiro mostra ocupado.
+
+Os botões só funcionam enquanto dura a chamada deles, e a notificação some quando
+a chamada é atendida em outro lugar, perdida ou encerrada. Um toque na
+notificação abre o painel sem atender. Um celular que sai do Home Assistant
+ganha um reparo, que o remove do porteiro.
+
 ## Remoção
 
 **Configurações → Dispositivos e serviços → Hikvision Virtual Indoor Station**:
 **Excluir**, nos três pontinhos do porteiro, remove o porteiro com o dispositivo
 e as entidades dele. Depois aponte a linha VoIP do porteiro para outro lugar (ou
-desligue-a) e desinstale a integração pelo Marketplace.
+desligue-a) e desinstale a integração pelo Marketplace. Um celular sozinho é
+removido com **Excluir** nos três pontinhos da linha dele, debaixo do porteiro.
 
 ## Como os dados são atualizados
 
@@ -184,6 +215,8 @@ desligue-a) e desinstale a integração pelo Marketplace.
   keepalive a cada 20 segundos enquanto está registrado.
 - **A câmera** transmite sob demanda; a foto dela é tirada quando um dashboard
   pede.
+- **Os celulares** são avisados quando a porta toca, e a notificação é retirada
+  quando a chamada é atendida em outro lugar, perdida ou encerrada.
 
 ## Limitações conhecidas
 
@@ -195,6 +228,10 @@ desligue-a) e desinstale a integração pelo Marketplace.
 - **Half duplex.** O cancelador de eco do porteiro abaixa a voz do visitante
   enquanto você fala: falem um de cada vez.
 - **Para falar, é preciso HTTPS** no navegador (por causa do microfone).
+- **Três botões no Android**: uma notificação só abre a primeira porta com
+  fechadura.
+- **As notificações precisam do celular online**: elas passam pelo serviço de
+  push do app do Home Assistant, que limita quantas um celular recebe por dia.
 
 ## Solução de problemas
 
@@ -212,6 +249,13 @@ desligue-a) e desinstale a integração pelo Marketplace.
 - **O botão da porta 2 está indisponível.** A saída dela aciona uma campainha ou
   nada (veja o sensor **Output** dela): mude para Electric Lock na página web do
   porteiro (Access Control → I/O Settings).
+- **Um celular não toca.** Permita as notificações do app do Home Assistant nele,
+  e veja se ele não está em **Não perturbe** para este porteiro. O app dele
+  precisa estar conectado: aí o Home Assistant tem a ação de notificação dele
+  (`notify.mobile_app_<nome dele>`).
+- **O vídeo demora a começar.** Ligue **Pré-carregar o fluxo da câmera** nas
+  configurações da câmera do porteiro: o fluxo dela fica sempre pronto (ele
+  mantém um fluxo do porteiro aberto).
 
 Ative os logs de depuração (**Configurações → Dispositivos e serviços →
 Hikvision Virtual Indoor Station → Habilitar registro de depuração**) e baixe os

@@ -1,4 +1,9 @@
-"""Diagnostics of a door station: what it is, its registration and its call, masked."""
+"""Diagnostics of a door station: what it is, its registration, its call and its phones.
+
+Masked: no addresses, names, account, nor the SIP Call-ID (it can carry the door's
+address; the call's token stands for it). The phones say what they may do, not who
+they are.
+"""
 
 from __future__ import annotations
 
@@ -11,9 +16,10 @@ from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 
 from . import IndoorStationConfigEntry
+from .phones import extensions_of, notify_service_of
 from .version import __version__
 
-TO_REDACT = {CONF_HOST, CONF_PASSWORD, CONF_USERNAME, "caller", "callee"}
+TO_REDACT = {CONF_HOST, CONF_PASSWORD, CONF_USERNAME, "caller", "callee", "id"}
 
 
 async def async_get_config_entry_diagnostics(
@@ -49,4 +55,13 @@ async def async_get_config_entry_diagnostics(
         },
         "call": async_redact_data(station.snapshot()["call"] or {}, TO_REDACT),
         "talkback": asdict(talkback.stats) if talkback is not None else None,
+        "phones": [
+            {
+                "do_not_disturb": extension.do_not_disturb,
+                "open_door": extension.open_door,
+                "notify_service": notify_service_of(hass, extension.device_id)
+                is not None,
+            }
+            for extension in extensions_of(entry)
+        ],
     }

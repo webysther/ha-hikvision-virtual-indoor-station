@@ -199,6 +199,17 @@
         "door_unheard": {
             "title": "{name} non chiama Home Assistant",
             "description": "Home Assistant non sente la linea VoIP di {name} da più di 11 minuti, quindi il suo pulsante non suona qui.\n\nNella pagina web del posto esterno, nelle impostazioni VoIP (SIP): abilita la linea, imposta il server `{address}` e la porta `{port}`, e lascia l'audio solo in G.711. Il sensore Registrazione SIP si accende quando il posto esterno si registra, e questo avviso scompare."
+        },
+        "phone_gone": {
+            "title": "Un telefono di {name} ha lasciato Home Assistant",
+            "fix_flow": {
+                "step": {
+                    "confirm": {
+                        "title": "Rimuovi {phone} da {name}",
+                        "description": "Il telefono {phone}, un interno di {name}, non è più un dispositivo di Home Assistant (la sua app è stata rimossa o è uscita), quindi non può suonare.\n\nSeleziona **Invia** per rimuoverlo da {name}. Quando la sua app torna, aggiungilo di nuovo con **Aggiungi telefono**."
+                    }
+                }
+            }
         }
     }
 }

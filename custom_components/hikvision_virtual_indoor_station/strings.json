@@ -199,6 +199,17 @@
         "door_unheard": {
             "title": "{name} does not call Home Assistant",
             "description": "Home Assistant has not heard the VoIP line of {name} for more than 11 minutes, so its button does not ring here.\n\nIn the web page of the door station, under the VoIP (SIP) settings: enable the line, set the server to `{address}` and the port to `{port}`, and set the audio to G.711 only. The SIP registration sensor turns on when the door station registers; this issue then goes away."
+        },
+        "phone_gone": {
+            "title": "A phone of {name} left Home Assistant",
+            "fix_flow": {
+                "step": {
+                    "confirm": {
+                        "title": "Remove {phone} from {name}",
+                        "description": "The phone {phone}, an extension of {name}, is no longer a device of Home Assistant (its app was removed or signed out), so it cannot ring.\n\nSelect **Submit** to remove it from {name}. Once its app is back, add it again with **Add phone**."
+                    }
+                }
+            }
         }
     }
 }

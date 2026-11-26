@@ -57,8 +57,10 @@ rules:
       answered elsewhere, a door that did not open.
   config-entry-unloading: done
   docs-configuration-parameters:
-    status: exempt
-    comment: The integration has no options.
+    status: done
+    comment: >-
+      The integration has no options; the settings of each phone (do not disturb, may
+      open the door) are in the README.
   docs-installation-parameters: done
   entity-unavailable: done
   integration-owner: done
@@ -110,7 +112,8 @@ rules:
     status: done
     comment: >-
       A door station whose VoIP line has not reached Home Assistant for longer than a
-      registration lasts has an issue saying how to point it here.
+      registration lasts has an issue saying how to point it here; a phone that left
+      Home Assistant has one whose fix removes it from its door station.
   stale-devices:
     status: exempt
     comment: Each entry is one door station; its device goes with the entry.

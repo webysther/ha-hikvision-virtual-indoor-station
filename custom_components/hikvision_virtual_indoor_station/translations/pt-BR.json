@@ -199,6 +199,17 @@
         "door_unheard": {
             "title": "{name} não chama o Home Assistant",
             "description": "O Home Assistant não ouve a linha VoIP de {name} há mais de 11 minutos, então o botão dele não toca aqui.\n\nNa página web do porteiro, nas configurações de VoIP (SIP): habilite a linha, ponha o servidor `{address}` e a porta `{port}`, e deixe o áudio só em G.711. O sensor Registro SIP liga quando o porteiro se registra, e este aviso some."
+        },
+        "phone_gone": {
+            "title": "Um celular de {name} saiu do Home Assistant",
+            "fix_flow": {
+                "step": {
+                    "confirm": {
+                        "title": "Remover {phone} de {name}",
+                        "description": "O celular {phone}, um ramal de {name}, não é mais um dispositivo do Home Assistant (o app foi removido ou saiu da conta), então não consegue tocar.\n\nSelecione **Enviar** para removê-lo de {name}. Quando o app voltar, adicione-o de novo com **Adicionar celular**."
+                    }
+                }
+            }
         }
     }
 }

@@ -9,6 +9,9 @@ The notification goes through the notify service of the Home Assistant app on th
 phone. mobile_app has no public way to that service: it names it after the phone's
 name in its entry, which is followed here, in one place, and checked against the
 services that exist. A phone without one is skipped.
+
+A phone that leaves Home Assistant (its app removed or signed out) can no longer ring:
+a repair issue says so, and its fix removes the phone from the door station.
 """
 
 from __future__ import annotations
@@ -22,7 +25,11 @@ from aiohikvision import CallState, DoorCall
 from homeassistant.const import CONF_DEVICE_ID, Platform
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import (
+    device_registry as dr,
+    entity_registry as er,
+    issue_registry as ir,
+)
 from homeassistant.helpers.translation import async_get_translations
 from homeassistant.util import slugify
 
@@ -37,7 +44,7 @@ from .const import (
 from .station import call_token
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 
     from .station import IndoorStation
 
@@ -58,6 +65,8 @@ ACTION_OPEN_DOOR: Final = "OPEN_DOOR"
 ACTION_REJECT: Final = "REJECT"
 # The action the app opens as an address instead of firing an event.
 ACTION_URI: Final = "URI"
+# The repair issue of a phone that left Home Assistant (one per phone).
+ISSUE_PHONE_GONE: Final = "phone_gone"
 # The Android channel of the rings: their own, so that their sound and importance can be
 # set apart from the other notifications of Home Assistant.
 ANDROID_CHANNEL: Final = "Door station"
@@ -101,6 +110,11 @@ def notify_service_of(hass: HomeAssistant, device_id: str) -> str | None:
     return None
 
 
+def issue_id(subentry_id: str) -> str:
+    """Return the repair issue of a phone that left Home Assistant."""
+    return f"{ISSUE_PHONE_GONE}_{subentry_id}"
+
+
 def panel_uri(entry_id: str, token: str, *, answer: bool = False) -> str:
     """Return the address of the indoor station panel for a call of a door station."""
     uri = f"/{PANEL_PATH}?entry={entry_id}&call={token}"
@@ -117,19 +131,32 @@ class Phones:
         # The phones (their notify services) a ringing call rang, to take it back
         self._rung: dict[str, list[str]] = {}
         self._texts: dict[str, str] = {}
+        # The phones (their subentries) that left Home Assistant: each has an issue
+        self._gone: set[str] = set()
 
     async def async_start(self) -> Callable[[], None]:
         """Hear the calls and the buttons of the notifications; return how to stop."""
         self._texts = await async_get_translations(
             self.hass, self.hass.config.language, "entity", {DOMAIN}
         )
-        stop_calls = self.station.async_add_call_listener(self._call_changed)
-        stop_actions = self.hass.bus.async_listen(ACTION_EVENT, self._action)
+        stops = [
+            self.station.async_add_call_listener(self._call_changed),
+            self.hass.bus.async_listen(ACTION_EVENT, self._action),
+            # A phone removed from Home Assistant
+            self.hass.bus.async_listen(
+                dr.EVENT_DEVICE_REGISTRY_UPDATED, self._devices_changed
+            ),
+            # A phone added, changed or removed (subentries do not reload the entry)
+            self.station.entry.add_update_listener(self._async_entry_updated),
+        ]
+        self.async_check_phones()
 
         @callback
         def stop() -> None:
-            stop_calls()
-            stop_actions()
+            for stop_one in stops:
+                stop_one()
+            for subentry_id in self._gone:
+                ir.async_delete_issue(self.hass, DOMAIN, issue_id(subentry_id))
 
         return stop
 
@@ -137,6 +164,43 @@ class Phones:
         """Return a text of the integration's entities, in the server's language."""
         text = self._texts.get(f"component.{DOMAIN}.entity.{key}") or default
         return text.format(**values) if values else text
+
+    # ------------------------------------------------------------ the phones
+
+    @callback
+    def async_check_phones(self) -> None:
+        """Have a repair issue for each phone that left Home Assistant, only those."""
+        entry = self.station.entry
+        devices = dr.async_get(self.hass)
+        gone: dict[str, ConfigSubentry] = {
+            subentry.subentry_id: subentry
+            for subentry in entry.subentries.values()
+            if subentry.subentry_type == SUBENTRY_EXTENSION
+            and devices.async_get(subentry.data[CONF_DEVICE_ID]) is None
+        }
+        for subentry_id in self._gone - gone.keys():
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id(subentry_id))
+        for subentry_id, subentry in gone.items():
+            ir.async_create_issue(
+                self.hass,
+                DOMAIN,
+                issue_id(subentry_id),
+                is_fixable=True,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key=ISSUE_PHONE_GONE,
+                translation_placeholders={"phone": subentry.title, "name": entry.title},
+                data={"entry_id": entry.entry_id, "subentry_id": subentry_id},
+            )
+        self._gone = set(gone)
+
+    @callback
+    def _devices_changed(self, event: Event[dr.EventDeviceRegistryUpdatedData]) -> None:
+        self.async_check_phones()
+
+    async def _async_entry_updated(
+        self, hass: HomeAssistant, entry: ConfigEntry
+    ) -> None:
+        self.async_check_phones()
 
     # ------------------------------------------------------------ the calls
 

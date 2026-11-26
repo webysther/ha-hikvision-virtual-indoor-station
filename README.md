@@ -54,6 +54,8 @@ hang up or refuse the call, and open the door.
 - **See and hear the visitor**: the camera of the door station, with its sound,
   played with WebRTC.
 - **Open the doors** wired to the door station, one button each.
+- **Your phones ring with the door**: a notification with the door's picture,
+  through focus modes, with **Answer**, **Open door** and **Reject** on it.
 - **Knows when the door cannot call**: a sensor of the SIP registration, and a
   repair issue that says how to point the door station at Home Assistant.
 
@@ -162,12 +164,41 @@ shortcuts:
 Browsers hold the sound of a page until it is tapped: the card asks for a tap
 when the door rings before that. Talking needs Home Assistant opened over HTTPS.
 
+## Phones
+
+Each phone with the Home Assistant app can ring with a door station: **Settings →
+Devices & services → Hikvision Virtual Indoor Station**, then **Add phone** on the
+door station.
+
+| Field | What it does |
+| --- | --- |
+| Phone | A device of the Home Assistant app (Mobile App) |
+| Do not disturb | The phone is not notified when this door station rings |
+| Can open the door | The notification has a button that opens the door |
+
+The last two can be changed later (**Reconfigure** on the phone); adding or
+changing a phone does not interrupt a call. When the door rings, each phone gets
+a notification with the door's picture, delivered at once (time-sensitive on
+iOS, high priority on Android), with:
+
+- **Answer**: opens the indoor station panel, a page with the door station's
+  card, which answers that call;
+- **Open door**: opens the first door with a lock, in the background (an iPhone
+  asks to be unlocked first);
+- **Reject**: the door station shows busy.
+
+The buttons work only while their call lasts, and the notification goes away
+once the call is answered elsewhere, missed or over. A tap on the notification
+opens the panel without answering. A phone that leaves Home Assistant has a
+repair issue, whose fix removes it from the door station.
+
 ## Removal
 
 **Settings → Devices & services → Hikvision Virtual Indoor Station**: **Delete**
 in the three dots of the door station removes it, with its device and entities.
 Then point the VoIP line of the door station elsewhere (or disable it), and
-uninstall the integration from the Marketplace.
+uninstall the integration from the Marketplace. A phone alone is removed with
+**Delete** in the three dots of its line, under its door station.
 
 ## How the data is updated
 
@@ -179,6 +210,8 @@ uninstall the integration from the Marketplace.
 - **The registration**: the door station registers every 10 minutes at most, and
   sends a keepalive every 20 seconds while it does.
 - **The camera** streams on demand; its picture is taken when a dashboard asks.
+- **The phones** are notified when the door rings, and the notification is taken
+  back when the call is answered elsewhere, missed or over.
 
 ## Known limitations
 
@@ -190,6 +223,10 @@ uninstall the integration from the Marketplace.
 - **Half duplex.** The door station's echo canceller lowers the visitor's voice
   while you talk: talk by turns.
 - **Talking needs HTTPS** in the browser (the microphone).
+- **Three buttons on Android**: a notification opens the first door with a lock
+  only.
+- **The notifications need the phone online**: they go through the push service
+  of the Home Assistant app, which limits how many a phone gets a day.
 
 ## Troubleshooting
 
@@ -207,6 +244,13 @@ uninstall the integration from the Marketplace.
 - **The button of door 2 is unavailable.** Its output rings a doorbell or drives
   nothing (see its **Output** sensor): set it to Electric Lock in the web page of
   the door station (Access Control → I/O Settings).
+- **A phone does not ring.** Allow the notifications of the Home Assistant app on
+  it, and check that it is not in **Do not disturb** for this door station. Its
+  app must be signed in: Home Assistant then has its notify action
+  (`notify.mobile_app_<its name>`).
+- **The video takes long to start.** Turn on **Preload camera stream** in the
+  settings of the door station's camera: its stream is then always ready (it
+  keeps one stream of the door station open).
 
 Enable debug logs (**Settings → Devices & services → Hikvision Virtual Indoor
 Station → Enable debug logging**) and download the diagnostics before opening an

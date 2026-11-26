@@ -31,7 +31,8 @@ station.
   restart of Home Assistant; a repair issue says how to point a door station that
   does not call Home Assistant.
 - Icons for every entity and state, and original brand art.
-- Diagnostics without addresses, names or account.
+- Diagnostics without addresses, names, account or SIP Call-ID; they tell what
+  each phone may do, not who it is.
 - The indoor station card (`custom:hikvision-indoor-station-card`), in the card
   picker: a standard card of the theme, laid out like an indoor station. The
   door's camera is on top, with the name and the state of the call (**Live**
@@ -64,7 +65,9 @@ station.
   opens the indoor station panel, which answers that call on the phone. The
   buttons work only while their call lasts, and the
   notification goes away when the call is answered elsewhere, missed or over.
-  The notifications name the call by a digest, never by its SIP Call-ID.
+  The notifications name the call by a digest, never by its SIP Call-ID. A
+  phone that leaves Home Assistant has a repair issue, whose fix removes it
+  from the door station.
 - The indoor station panel: a door station's card on a page of its own, out of
   the sidebar, opened by the notifications.
 - The indoor station dashboard (`custom:hikvision-indoor-station`, in **Add

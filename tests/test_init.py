@@ -5,14 +5,15 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import timedelta
 import io
+from types import MappingProxyType
 from unittest.mock import MagicMock, patch
 
 from aiohikvision import CallError, DoorStationInfo, Registration
 from aiohikvision.isapi.model.inventory import StreamSpec
 from aiohikvision.isapi.wire.faults import BadCredentials, Unreachable
 from homeassistant.components.camera import async_get_image, async_get_stream_source
-from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import CONF_HOST, EVENT_HOMEASSISTANT_STOP
+from homeassistant.config_entries import ConfigEntryState, ConfigSubentry
+from homeassistant.const import CONF_DEVICE_ID, CONF_HOST, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
@@ -264,6 +265,17 @@ async def test_diagnostics(
     sip_server._registered(
         Registration("100", DOOR_IP, 5060, "sip:100@door", 1e12, "HKVS/2.0"), True
     )
+    hass.config_entries.async_add_subentry(
+        loaded,
+        ConfigSubentry(
+            data=MappingProxyType(
+                {CONF_DEVICE_ID: "gone", "do_not_disturb": True, "open_door": False}
+            ),
+            subentry_type="extension",
+            title="Pixel",
+            unique_id="gone",
+        ),
+    )
     data = await async_get_config_entry_diagnostics(hass, loaded)
     assert data["version"] == "develop"  # the release workflow writes the tag
     assert data["entry"]["host"] == "**REDACTED**"
@@ -276,6 +288,14 @@ async def test_diagnostics(
     assert data["call"]["state"] == "answered"
     assert data["call"]["caller"] == "**REDACTED**"
     assert data["talkback"] == {"packets": 0, "bursts": 0, "frames_dropped": 0}
+    # The SIP Call-ID can carry the door's address: the token stands for it
+    assert data["call"]["id"] == "**REDACTED**"
+    assert data["call"]["token"]
+    # The phones say what they may do, not who they are
+    assert data["phones"] == [
+        {"do_not_disturb": True, "open_door": False, "notify_service": False}
+    ]
+    assert "Pixel" not in str(data)
     assert DOOR_IP not in str(data)
     assert INFO.identity.serial not in str(data)
 

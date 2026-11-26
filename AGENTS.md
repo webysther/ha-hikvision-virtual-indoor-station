@@ -58,7 +58,9 @@ custom_components/hikvision_virtual_indoor_station/
   station.py       IndoorStation: the latest call of a door, its registration,
                    the listeners, and the commands (answer, hang up, reject,
                    open a door), each naming its call
-  config_flow.py   address and account; reauthentication; reconfiguration
+  config_flow.py   address and account; reauthentication; reconfiguration;
+                   the phones (subentry extension: device_id, do_not_disturb,
+                   open_door)
   coordinator.py   HealthCoordinator: asks the door station who it is once a
                    minute; the entities are unavailable while it does not
                    answer, and the station checks whether the door still calls
@@ -69,8 +71,15 @@ custom_components/hikvision_virtual_indoor_station/
                    each door; answer, hang up, reject), camera.py (RTSP)
   websocket.py     the commands of the cards: subscribe, call, open_door, talk
                    (binary frames routed to the call or to the speaker)
-  diagnostics.py   masked: no addresses, names or account
-  dashboard.py     serves frontend/ and has the frontend load it
+  phones.py        the phones ring with the door: a notification through the
+                   app's notify action, its buttons (answer in the panel, open
+                   the door, reject) valid while their call lasts, taken back
+                   when the call moves on; the repair issue phone_gone
+  repairs.py       the fix of phone_gone: remove the phone from the door station
+  diagnostics.py   masked: no addresses, names, account or SIP Call-ID
+  dashboard.py     serves frontend/ and has the frontend load it; registers the
+                   indoor station panel (/hikvision-indoor-station, out of the
+                   sidebar), which the notifications open
   frontend/        JavaScript without build (// @ts-check + JSDoc):
                    hikvision-indoor-station-card.js (the card: a standard
                    card of the theme, laid out like an indoor station; only
@@ -119,7 +128,10 @@ Users' automations and dashboards depend on what the integration exposes.
 - Never rename the states of the call sensor (`CALL_STATES`), the event types of the
   doorbell (`EVENT_TYPES`), nor the fields of the websocket commands and of the
   doorbell's events (`call_id`, `caller`, `callee`, `end_reason`).
-- Changing the shape of entry data needs a migration and a new `MINOR_VERSION`.
+- Changing the shape of entry data needs a migration and a new `MINOR_VERSION`,
+  and so does the data of the phones (subentry `extension`).
+- Never change the panel's path (`/hikvision-indoor-station`) nor its query
+  (`entry`, `call`, `answer`): notifications already on phones open it.
 - Supported Home Assistant: from the `homeassistant` version in `hacs.json`
   (2026.10.0: `probatio`, `async_get_device_by_identifier`) to the latest.
 

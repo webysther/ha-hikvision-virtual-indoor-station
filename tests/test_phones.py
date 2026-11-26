@@ -9,8 +9,13 @@ from aiohikvision.isapi.wire.faults import Unreachable
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.const import CONF_DEVICE_ID
 from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import (
+    device_registry as dr,
+    entity_registry as er,
+    issue_registry as ir,
+)
 import pytest
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
@@ -20,6 +25,7 @@ from pytest_homeassistant_custom_component.common import (
 from custom_components.hikvision_virtual_indoor_station.const import (
     CONF_DO_NOT_DISTURB,
     CONF_OPEN_DOOR,
+    DOMAIN,
     MOBILE_APP,
     SUBENTRY_EXTENSION,
 )
@@ -27,6 +33,9 @@ from custom_components.hikvision_virtual_indoor_station.phones import (
     ACTION_EVENT,
     CLEAR_NOTIFICATION,
     notify_service_of,
+)
+from custom_components.hikvision_virtual_indoor_station.repairs import (
+    async_create_fix_flow,
 )
 from custom_components.hikvision_virtual_indoor_station.station import call_token
 
@@ -242,3 +251,61 @@ def test_calls_are_named_alike() -> None:
     """The same call has the same name; another call another one."""
     assert call_token("call-1") == TOKEN
     assert call_token("call-2") != TOKEN
+
+
+async def test_a_phone_that_left_home_assistant(
+    hass: HomeAssistant, loaded: MockConfigEntry
+) -> None:
+    """A repair issue says so, and its fix removes the phone from the door station."""
+    issues = ir.async_get(hass)
+    pixel = phone(hass, "Pixel")
+    extension(hass, loaded, pixel)
+    await hass.async_block_till_done()
+    (subentry_id,) = loaded.subentries
+    issue_id = f"phone_gone_{subentry_id}"
+    assert issues.async_get_issue(DOMAIN, issue_id) is None
+
+    dr.async_get(hass).async_remove_device(pixel)
+    await hass.async_block_till_done()
+    issue = issues.async_get_issue(DOMAIN, issue_id)
+    assert issue is not None
+    assert issue.is_fixable
+    assert issue.translation_key == "phone_gone"
+    assert issue.translation_placeholders == {"phone": pixel, "name": "Door Station"}
+
+    flow = await async_create_fix_flow(hass, issue_id, issue.data)
+    flow.hass = hass
+    flow.handler = DOMAIN
+    flow.issue_id = issue_id
+    result = await flow.async_step_init()
+    assert result["type"] is FlowResultType.FORM
+    assert result["description_placeholders"] == issue.translation_placeholders
+    result = await flow.async_step_confirm({})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    assert not loaded.subentries
+    # The phone is gone from the door station, and its issue with it
+    assert issues.async_get_issue(DOMAIN, issue_id) is None
+    # Confirmed twice (another window): nothing more to remove
+    result = await flow.async_step_confirm({})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    result = await flow.async_step_confirm()
+    assert result["description_placeholders"] is None
+    # An issue without its data names no phone: nothing is removed
+    flow = await async_create_fix_flow(hass, issue_id, None)
+    flow.hass = hass
+    result = await flow.async_step_confirm({})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+
+
+async def test_the_issues_go_with_the_door_station(
+    hass: HomeAssistant, loaded: MockConfigEntry
+) -> None:
+    """A phone that left has an issue while its door station is loaded."""
+    extension(hass, loaded, "gone")
+    await hass.async_block_till_done()
+    (subentry_id,) = loaded.subentries
+    issues = ir.async_get(hass)
+    assert issues.async_get_issue(DOMAIN, f"phone_gone_{subentry_id}") is not None
+    assert await hass.config_entries.async_unload(loaded.entry_id)
+    assert issues.async_get_issue(DOMAIN, f"phone_gone_{subentry_id}") is None

@@ -55,6 +55,9 @@ parli, riagganci o rifiuti la chiamata, e apri la porta.
 - **Vedi e senti il visitatore**: la telecamera del citofono, con il suo suono,
   riprodotta con WebRTC.
 - **Apri le porte** collegate al citofono, un pulsante per ciascuna.
+- **I tuoi telefoni suonano con la porta**: una notifica con la foto della
+  porta, anche con le modalità full immersion, con **Rispondi**, **Apri porta** e
+  **Rifiuta**.
 - **Sa quando la porta non può chiamare**: un sensore della registrazione SIP, e
   una riparazione che spiega come puntare il citofono su Home Assistant.
 
@@ -167,12 +170,41 @@ I browser trattengono il suono di una pagina finché non la si tocca: la scheda
 chiede un tocco se la porta suona prima. Per parlare serve Home Assistant aperto
 in HTTPS.
 
+## Telefoni
+
+Ogni telefono con l'app di Home Assistant può suonare con un citofono:
+**Impostazioni → Dispositivi e servizi → Hikvision Virtual Indoor Station**, poi
+**Aggiungi telefono** sul citofono.
+
+| Campo | Cosa fa |
+| --- | --- |
+| Telefono | Un dispositivo dell'app di Home Assistant (Mobile App) |
+| Non disturbare | Il telefono non viene avvisato quando suona questo citofono |
+| Può aprire la porta | La notifica ha un pulsante che apre la porta |
+
+Gli ultimi due si possono cambiare dopo (**Riconfigura** sul telefono);
+aggiungere o cambiare un telefono non interrompe una chiamata. Quando la porta
+suona, ogni telefono riceve una notifica con la foto della porta, consegnata
+subito (time-sensitive su iOS, priorità alta su Android), con:
+
+- **Rispondi**: apre il pannello del posto interno, una pagina con la scheda del
+  citofono, che risponde a quella chiamata;
+- **Apri porta**: apre la prima porta con una serratura, in background (un
+  iPhone chiede di essere sbloccato prima);
+- **Rifiuta**: il citofono mostra occupato.
+
+I pulsanti funzionano solo finché dura la loro chiamata, e la notifica sparisce
+quando la chiamata riceve risposta altrove, viene persa o finisce. Un tocco sulla
+notifica apre il pannello senza rispondere. Un telefono che lascia Home Assistant
+ha una riparazione, che lo rimuove dal citofono.
+
 ## Rimozione
 
 **Impostazioni → Dispositivi e servizi → Hikvision Virtual Indoor Station**:
 **Elimina**, nei tre puntini del citofono, lo rimuove con il suo dispositivo e le
 sue entità. Poi punta la linea VoIP del citofono altrove (o disattivala), e
-disinstalla l'integrazione dal Marketplace.
+disinstalla l'integrazione dal Marketplace. Un solo telefono si rimuove con
+**Elimina** nei tre puntini della sua riga, sotto il suo citofono.
 
 ## Come vengono aggiornati i dati
 
@@ -187,6 +219,8 @@ disinstalla l'integrazione dal Marketplace.
   manda un keepalive ogni 20 secondi mentre è registrato.
 - **La telecamera** trasmette su richiesta; la sua foto viene scattata quando
   una plancia la chiede.
+- **I telefoni** vengono avvisati quando la porta suona, e la notifica viene
+  ritirata quando la chiamata riceve risposta altrove, viene persa o finisce.
 
 ## Limitazioni note
 
@@ -198,6 +232,10 @@ disinstalla l'integrazione dal Marketplace.
 - **Half duplex.** Il cancellatore d'eco del citofono abbassa la voce del
   visitatore mentre parli: parlate a turno.
 - **Per parlare serve HTTPS** nel browser (per il microfono).
+- **Tre pulsanti su Android**: una notifica apre solo la prima porta con una
+  serratura.
+- **Le notifiche richiedono il telefono online**: passano dal servizio push
+  dell'app di Home Assistant, che limita quante un telefono ne riceve al giorno.
 
 ## Risoluzione dei problemi
 
@@ -217,6 +255,13 @@ disinstalla l'integrazione dal Marketplace.
 - **Il pulsante della porta 2 non è disponibile.** La sua uscita comanda un
   campanello o niente (vedi il suo sensore **Output**): impostala su Electric
   Lock nella pagina web del citofono (Access Control → I/O Settings).
+- **Un telefono non suona.** Consenti le notifiche dell'app di Home Assistant sul
+  telefono, e controlla che non sia in **Non disturbare** per questo citofono. La
+  sua app deve aver fatto l'accesso: Home Assistant ha allora la sua azione di
+  notifica (`notify.mobile_app_<il suo nome>`).
+- **Il video tarda a partire.** Attiva **Precaricare il flusso della
+  telecamera** nelle impostazioni della telecamera del citofono: il suo flusso è
+  allora sempre pronto (tiene aperto un flusso del citofono).
 
 Attiva i log di debug (**Impostazioni → Dispositivi e servizi → Hikvision Virtual
 Indoor Station → Abilita la registrazione di debug**) e scarica la diagnostica
