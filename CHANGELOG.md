@@ -46,23 +46,30 @@ station.
   or while monitoring, and shows its picture otherwise; the door's sound plays
   once answered or monitored. A key for each door that opens and the shortcuts
   sit on the right of the same row (a door whose output does not drive a lock
-  has none), `show_name: false` leaves the keys with their icons only, and
-  `show_state: false` takes the name and the state off the camera. A
+  has none), `show_name: false` leaves the keys with their icons only,
+  `show_state: false` takes the name and the state off the camera,
+  `show_monitor`, `show_talk` and `show_ringer: false` hide those keys, and
+  `columns` sets how many keys a row takes. A
   warning shows when the door station is not registered.
 - Push-to-talk on the card: hold the button (or the space bar on it), or press
   it once to talk and once to stop (`talk_mode: toggle`). Your voice goes with
   an answered call, or through the door's speaker while idle; the door's sound
   is muted while you talk. The card says why a talk could not start (HTTPS, the
   microphone's permission) or why it ended.
-- The browser rings while the door rings, with a button to mute it (remembered
-  by each browser), and asks for a tap when the browser holds the sound. The
-  time of an answered call is counted.
+- The browser rings while the door rings, with a bell key to mute it
+  (remembered by each browser), and asks for a tap when the browser holds the
+  sound. The time of an answered call is counted.
+- The door's sound on phones and tablets, which play it only from a tap:
+  **Answer** and **Monitor** turn it on within their tap, and when the browser
+  still keeps it muted or paused (a call answered from a notification), the
+  card asks for a tap to hear the door.
 - Shortcuts on the card for other entities (a light, a scene, another door):
   buttons are pressed, scenes and scripts turned on, automations triggered, the
   rest toggled. The card has a visual editor: the door station, the way to talk,
   the shortcuts and whether the keys show their names.
-- Phones with the Home Assistant app are added to a door station as its
-  extensions (**Add phone** on its entry), each with its own do not disturb and
+- Phones and tablets with the Home Assistant app (Mobile App) are added to a
+  door station as its extensions (**Add mobile app** on its entry), each with its
+  own do not disturb and
   whether it may open the door. Adding or changing one does not interrupt a
   call.
 - The phones ring with the door station: a notification with the door's

@@ -119,7 +119,7 @@ settings of the door station's camera.
 ## 6. Make the phones ring
 
 On **Settings → Devices & services → Hikvision Virtual Indoor Station**, choose
-**Add phone** on the door station, pick a phone with the Home Assistant app, and
+**Add mobile app** on the door station, pick a phone with the Home Assistant app, and
 decide whether it may open the door. Each phone can also be put in **Do not
 disturb** for this door station.
 

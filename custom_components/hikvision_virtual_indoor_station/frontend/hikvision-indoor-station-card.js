@@ -61,7 +61,9 @@ export { CARD };
  * @typedef {{ entity: string, name?: string, icon?: string }} Shortcut A button of the card
  *   for another entity: a light, a scene, another door.
  * @typedef {{ type: string, device_id?: string, talk_mode?: TalkMode,
- *   shortcuts?: Array<string | Shortcut>, show_name?: boolean, show_state?: boolean }} CardConfig
+ *   shortcuts?: Array<string | Shortcut>, show_name?: boolean, show_state?: boolean,
+ *   show_monitor?: boolean, show_talk?: boolean, show_ringer?: boolean,
+ *   columns?: number }} CardConfig
  * @typedef {{ media: HTMLElement, overlay: HTMLElement, name: HTMLElement, state: HTMLElement,
  *   warning: HTMLElement, keys: HTMLElement, extra: HTMLElement,
  *   buttons: Map<KeyName, HTMLButtonElement> }} Parts
@@ -86,6 +88,31 @@ export const PANEL = "hikvision-indoor-station-panel";
  * made by the browser: no recording is played.
  */
 export const RING = { tones: [880, 660], tone: 0.4, period: 2.5, volume: 0.25 };
+
+/** The options that show or hide a part of the card; each one is shown unless false. */
+export const SHOW_OPTIONS = /** @type {const} */ ([
+  "show_name",
+  "show_state",
+  "show_monitor",
+  "show_talk",
+  "show_ringer",
+]);
+/** The keys each option hides. */
+export const HIDDEN_KEYS = /** @type {const} */ ({
+  show_monitor: "monitor",
+  show_talk: "talk",
+  show_ringer: "ring",
+});
+/** The most keys a row can take (`columns`): beyond, a key is narrower than its icon. */
+export const MAX_COLUMNS = 12;
+
+/**
+ * How long after the door should be heard the card looks whether the browser plays its
+ * sound (ms): long enough for Home Assistant's player to start or give up.
+ */
+export const SOUND_CHECK_MS = 2000;
+/** HTMLMediaElement.HAVE_CURRENT_DATA: the video shows a frame, it is no longer loading. */
+const HAVE_CURRENT_DATA = 2;
 
 /**
  * Return the state of the call the card shows: an ended call leaves the station idle.
@@ -191,7 +218,7 @@ export function deviceKeys({
     },
     {
       key: "ring",
-      icon: ringMuted ? "mdi:volume-off" : "mdi:volume-high",
+      icon: ringMuted ? "mdi:bell-off" : "mdi:bell",
       tone: "plain",
       enabled: true,
       active: ringMuted,
@@ -227,6 +254,41 @@ export function screenOf(state, monitoring, talking = false) {
     live: state !== "idle" || monitoring,
     audible: (state === "answered" || monitoring) && !talking,
   };
+}
+
+/**
+ * Return the video of the camera stream: Home Assistant's player keeps it in the shadow
+ * roots of its elements, at a depth that changes between its versions.
+ *
+ * @param {Element | ShadowRoot | null | undefined} root
+ * @returns {HTMLVideoElement | null}
+ */
+export function videoIn(root) {
+  if (!root) return null;
+  if (root instanceof Element && root.localName === "video") {
+    return /** @type {HTMLVideoElement} */ (root);
+  }
+  const shadow = root instanceof Element ? root.shadowRoot : null;
+  for (const child of [...(shadow ? [shadow] : []), ...Array.from(root.children)]) {
+    const found = videoIn(/** @type {Element | ShadowRoot} */ (child));
+    if (found) return found;
+  }
+  return null;
+}
+
+/**
+ * Return whether the browser keeps the door silent while it should be heard: phones play
+ * a video with sound only after a tap, and keep it muted (or pause it) when the sound is
+ * turned on later, as when a call is answered from a notification. A video still loading
+ * is not held: it has nothing to play yet.
+ *
+ * @param {{ muted: boolean, paused: boolean, readyState: number } | null} video
+ * @param {boolean} audible Whether the door should be heard now.
+ */
+export function soundHeld(video, audible) {
+  return Boolean(
+    audible && video && video.readyState >= HAVE_CURRENT_DATA && (video.muted || video.paused),
+  );
 }
 
 /**
@@ -369,10 +431,16 @@ export function checkConfig(config) {
   if (config.talk_mode !== undefined && !["hold", "toggle"].includes(config.talk_mode)) {
     throw new Error("talk_mode must be hold or toggle");
   }
-  for (const option of ["show_name", "show_state"]) {
+  for (const option of SHOW_OPTIONS) {
     if (config[option] !== undefined && typeof config[option] !== "boolean") {
       throw new Error(`${option} must be true or false`);
     }
+  }
+  if (
+    config.columns !== undefined &&
+    !(Number.isInteger(config.columns) && config.columns >= 1 && config.columns <= MAX_COLUMNS)
+  ) {
+    throw new Error(`columns must be a whole number from 1 to ${MAX_COLUMNS}`);
   }
   if (config.shortcuts !== undefined) {
     const valid = (/** @type {any} */ item) =>
@@ -462,8 +530,8 @@ export function editorData(config) {
     device_id: config.device_id,
     talk_mode: config.talk_mode ?? "hold",
     shortcuts: shortcutsOf(config).map((shortcut) => shortcut.entity),
-    show_name: config.show_name ?? true,
-    show_state: config.show_state ?? true,
+    ...Object.fromEntries(SHOW_OPTIONS.map((option) => [option, config[option] ?? true])),
+    ...(config.columns ? { columns: config.columns } : {}),
   };
 }
 
@@ -473,7 +541,8 @@ export function editorData(config) {
  *
  * @param {CardConfig} config
  * @param {{ device_id?: string, talk_mode?: TalkMode, shortcuts?: string[],
- *   show_name?: boolean, show_state?: boolean }} value
+ *   show_name?: boolean, show_state?: boolean, show_monitor?: boolean,
+ *   show_talk?: boolean, show_ringer?: boolean, columns?: number }} value
  * @returns {CardConfig}
  */
 export function configFromEditor(config, value) {
@@ -487,8 +556,8 @@ export function configFromEditor(config, value) {
     return shortcut && (shortcut.name || shortcut.icon) ? shortcut : entity;
   });
   if (shortcuts.length) result.shortcuts = shortcuts;
-  if (value.show_name === false) result.show_name = false;
-  if (value.show_state === false) result.show_state = false;
+  for (const option of SHOW_OPTIONS) if (value[option] === false) result[option] = false;
+  if (value.columns) result.columns = value.columns;
   return result;
 }
 
@@ -522,6 +591,14 @@ export function editorSchema(hass) {
     { name: "shortcuts", label: texts.editor_shortcuts, selector: { entity: { multiple: true } } },
     { name: "show_name", label: texts.editor_show_name, selector: { boolean: {} } },
     { name: "show_state", label: texts.editor_show_state, selector: { boolean: {} } },
+    { name: "show_monitor", label: texts.editor_show_monitor, selector: { boolean: {} } },
+    { name: "show_talk", label: texts.editor_show_talk, selector: { boolean: {} } },
+    { name: "show_ringer", label: texts.editor_show_ringer, selector: { boolean: {} } },
+    {
+      name: "columns",
+      label: texts.editor_columns,
+      selector: { number: { min: 1, max: MAX_COLUMNS, mode: "box" } },
+    },
   ];
 }
 
@@ -629,6 +706,10 @@ if (typeof customElements !== "undefined") {
     .keys { display: flex; flex-wrap: wrap; justify-content: space-around; align-items: stretch;
       gap: 2px; padding: 8px; }
     .extra { display: contents; }
+    .keys.columned > .key, .keys.columned .key {
+      flex: 0 0 calc((100% - (var(--columns) - 1) * 2px) / var(--columns));
+      min-width: 0; max-width: none; }
+    .keys.columned .divider { display: none; }
     .divider { flex: none; width: 1px; margin: 6px 2px; background: var(--divider-color); }
     .no-names .caption { display: none; }
     .key { flex: 1 1 0; min-width: 48px; max-width: 96px; display: flex; flex-direction: column;
@@ -763,14 +844,61 @@ if (typeof customElements !== "undefined") {
     #microphone = null;
     /** @type {ReturnType<typeof setInterval> | null} Ticks the time of an answered call. */
     #clock = null;
+    /** Whether the browser keeps the door silent until a tap (see `soundHeld`). */
+    #soundHeld = false;
+    /** @type {ReturnType<typeof setTimeout> | null} The next look at the sound. */
+    #soundCheck = null;
 
     constructor() {
       super();
-      // A tap on the card lets the browser play the ring and the microphone
-      this.addEventListener("pointerdown", () => {
+      // A tap on the card lets the browser play the ring, the microphone and the door's
+      // sound. Phones count the end of a touch as the tap (pointerup, click), computers
+      // the press (pointerdown).
+      const unlock = () => {
         this.#ringer.resume();
         this.#microphone?.resume();
-      });
+        if (this.#audible()) this.#hearDoor();
+      };
+      this.addEventListener("pointerdown", unlock);
+      this.addEventListener("click", unlock);
+    }
+
+    /** Whether the door should be heard now: a call answered, or the door monitored. */
+    #audible() {
+      const state = callStateOf(this.#snapshot);
+      return screenOf(state, this.#monitoring, this.#microphone !== null).audible;
+    }
+
+    /**
+     * Turn the door's sound on in the video itself. Called within a tap: only there do
+     * phones let a video play with sound.
+     */
+    #hearDoor() {
+      const video = videoIn(this.#stream);
+      if (this.#stream) this.#stream.muted = false;
+      if (!video) return;
+      video.muted = false;
+      video.play().catch(() => {});
+      if (this.#soundHeld && !soundHeld(video, true)) {
+        this.#soundHeld = false;
+        this.#render();
+      }
+    }
+
+    /**
+     * Look, a moment after the sound should start, whether the browser plays it: if not,
+     * the card asks for a tap. The player takes a moment to start (and to give up).
+     */
+    #checkSound() {
+      if (this.#soundCheck) return;
+      this.#soundCheck = setTimeout(() => {
+        this.#soundCheck = null;
+        const held = soundHeld(videoIn(this.#stream), this.#audible());
+        if (held !== this.#soundHeld) {
+          this.#soundHeld = held;
+          this.#render();
+        }
+      }, SOUND_CHECK_MS);
     }
 
     /** @param {any} config */
@@ -808,6 +936,9 @@ if (typeof customElements !== "undefined") {
       this.#stream = null;
       if (this.#clock) clearInterval(this.#clock);
       this.#clock = null;
+      if (this.#soundCheck) clearTimeout(this.#soundCheck);
+      this.#soundCheck = null;
+      this.#soundHeld = false;
     }
 
     /** Subscribe to the state of the door station of the card, once. */
@@ -886,6 +1017,8 @@ if (typeof customElements !== "undefined") {
     #press(key) {
       const entry = this.#station?.entry_id;
       const call = this.#snapshot?.call;
+      // Within the tap: the sound of an answered or monitored door may start
+      if (key === "answer" || (key === "monitor" && !this.#monitoring)) this.#hearDoor();
       if (key === "monitor") {
         this.#monitoring = !this.#monitoring;
         this.#render();
@@ -1031,6 +1164,9 @@ if (typeof customElements !== "undefined") {
       parts.keys.hidden = false;
       parts.keys.classList.toggle("no-names", this.#config.show_name === false);
       parts.overlay.hidden = this.#config.show_state === false;
+      const columns = this.#config.columns;
+      parts.keys.classList.toggle("columned", Boolean(columns));
+      if (columns) parts.keys.style.setProperty("--columns", String(columns));
       parts.name.textContent = station.name;
       const label = screenLabel(hass, state, {
         monitoring: this.#monitoring,
@@ -1044,13 +1180,13 @@ if (typeof customElements !== "undefined") {
       const warnings = [];
       if (this.#snapshot && !this.#snapshot.registered) warnings.push(texts.unregistered);
       if (this.#ringer.ringing && this.#ringer.blocked) warnings.push(texts.tap_for_sound);
+      const screen = screenOf(state, this.#monitoring, this.#microphone !== null);
+      if (screen.audible) this.#checkSound();
+      else this.#soundHeld = false;
+      if (this.#soundHeld) warnings.push(texts.tap_to_hear);
       parts.warning.textContent = warnings.join(" ");
       parts.warning.hidden = !warnings.length;
-      this.#renderScreen(
-        hass,
-        station,
-        screenOf(state, this.#monitoring, this.#microphone !== null),
-      );
+      this.#renderScreen(hass, station, screen);
       this.#renderKeys(hass, state, talkable);
       this.#renderExtra(hass, station);
     }
@@ -1135,6 +1271,12 @@ if (typeof customElements !== "undefined") {
           enabled: key.enabled && (!ofCall || (hasCall && this.#busy === null)),
         });
       });
+      // The keys the card was set to hide
+      const config = /** @type {CardConfig} */ (this.#config);
+      for (const [option, name] of Object.entries(HIDDEN_KEYS)) {
+        /** @type {HTMLButtonElement} */ (buttons.get(name)).hidden =
+          config[/** @type {keyof typeof HIDDEN_KEYS} */ (option)] === false;
+      }
     }
 
     /**

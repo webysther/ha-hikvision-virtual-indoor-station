@@ -27,6 +27,9 @@ async def async_get_config_entry_diagnostics(
 ) -> dict[str, Any]:
     """Return the diagnostics of an entry, without addresses, names or the account."""
     station = entry.runtime_data
+    # Both are created before the entry is loaded
+    assert station.health is not None
+    assert station.settings is not None
     info = station.info
     identity = info.identity
     registration = station.registration
@@ -64,4 +67,11 @@ async def async_get_config_entry_diagnostics(
             }
             for extension in extensions_of(entry)
         ],
+        "load": asdict(station.health.data.load),
+        "inputs": [item.use.value for item in info.inputs],
+        # The values of its settings (levels and choices, nothing that names anyone)
+        "settings": {
+            f"{key}/{channel}": value.value
+            for (key, channel), value in station.settings.data.values.items()
+        },
     }

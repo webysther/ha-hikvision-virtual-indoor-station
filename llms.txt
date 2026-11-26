@@ -25,13 +25,13 @@ This file is an overview for language models. The README is the user guide; AGEN
 
 ## Card, dashboard and panel
 
-- Card `custom:hikvision-indoor-station-card`, keys `device_id`, `talk_mode` (`hold` or `toggle`), `shortcuts` (entities, or `{entity, name, icon}`), `show_name` (false: icons only), `show_state` (false: no name and call state over the camera). A standard card laid out like an indoor station: the camera, then one row of keys (Answer, Hang up or Reject, Monitor, Push to talk, the ringer) with a key per door that opens and the shortcuts on its right.
+- Card `custom:hikvision-indoor-station-card`, keys `device_id`, `talk_mode` (`hold` or `toggle`), `shortcuts` (entities, or `{entity, name, icon}`), `show_name` (false: icons only), `show_state` (false: no name and call state over the camera), `show_monitor`, `show_talk`, `show_ringer` (false: that key hidden), `columns` (keys per row, 1 to 12). A standard card laid out like an indoor station: the camera, then one row of keys (Answer, Hang up or Reject, Monitor, Push to talk, the ringer) with a key per door that opens and the shortcuts on its right.
 - Dashboard strategy `custom:hikvision-indoor-station`: one view per door station, with its card and activity.
 - Panel `/hikvision-indoor-station?entry=<entry_id>&call=<token>&answer=1`, out of the sidebar: a door station's card on its own page, opened by the phones' notifications.
 
-## Phones
+## Mobile apps
 
-- Each phone with the Home Assistant app is a subentry `extension` of a door station: `device_id`, `do_not_disturb`, `open_door`. Adding or changing one does not reload the entry.
+- Each phone or tablet with the Home Assistant app (Mobile App) is a subentry `extension` of a door station: `device_id`, `do_not_disturb`, `open_door`. Adding or changing one does not reload the entry.
 - When the door rings, each phone not in do not disturb gets a notification through `notify.mobile_app_<phone>`: the door's picture, time-sensitive on iOS, high priority on Android, buttons Answer (opens the panel, which answers), Open door (first door with a lock) and Reject. The buttons act only while their call lasts; the notification is cleared when the call moves on.
 - Outside Home Assistant a call is named by a token (a SHA-256 digest of its SIP Call-ID, 16 hex digits), never by the Call-ID.
 - A phone that leaves Home Assistant gets the repair issue `phone_gone`, whose fix removes it.

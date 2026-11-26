@@ -1,9 +1,9 @@
 """Hikvision Virtual Indoor Station: Home Assistant as a door station's indoor station.
 
 Each entry is a door station. Its calls come over SIP, to a server shared by all entries
-(sip.py); everything else (identity, doors, picture, speaker) is ISAPI, through
-aiohikvision's DoorStation. The entities and the cards read and command an IndoorStation
-(station.py).
+(sip.py); everything else (identity, doors, picture, speaker, settings, load) is ISAPI,
+through aiohikvision's DoorStation. The entities and the cards read and command an
+IndoorStation (station.py).
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from . import sip, websocket
 from .const import DEFAULT_PORT, DOMAIN
-from .coordinator import HealthCoordinator
+from .coordinator import Health, HealthCoordinator, Settings, SettingsCoordinator
 from .dashboard import async_offer_the_frontend
 from .phones import Phones
 from .station import IndoorStation
@@ -43,7 +43,10 @@ PLATFORMS = [
     Platform.BUTTON,
     Platform.CAMERA,
     Platform.EVENT,
+    Platform.NUMBER,
+    Platform.SELECT,
     Platform.SENSOR,
+    Platform.SWITCH,
 ]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -72,6 +75,10 @@ async def async_setup_entry(
     )
     try:
         info = await door.read_info()
+        load = await door.read_health()
+        # What it offers is read once (its capabilities); their values are followed
+        settings = await door.read_settings()
+        values = await door.read_setting_values(settings)
     except (BadCredentials, LockedOut) as err:
         raise ConfigEntryAuthFailed(
             translation_domain=DOMAIN,
@@ -100,11 +107,14 @@ async def async_setup_entry(
     station = IndoorStation(hass, entry, door, info, await _address(host))
     station.health = HealthCoordinator(hass, entry, door)
     # The door station just answered: no second request before the first interval
-    station.health.async_set_updated_data(info.outputs)
+    station.health.async_set_updated_data(Health(info.outputs, load))
     entry.async_on_unload(
         station.health.async_add_listener(station.async_check_presence)
     )
     entry.async_on_unload(station.health.async_add_listener(station.outputs_changed))
+    station.settings = SettingsCoordinator(hass, entry, door, settings)
+    station.settings.async_set_updated_data(Settings(values, info.inputs))
+    entry.async_on_unload(station.settings.async_add_listener(station.inputs_changed))
     try:
         station.sip = await sip.async_acquire(hass, station)
     except OSError as err:

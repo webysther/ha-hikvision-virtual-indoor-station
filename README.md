@@ -168,25 +168,33 @@ shortcuts:
 show_name: true
 # false: no name and no call state on top of the camera
 show_state: true
+# false: hides that key
+show_monitor: true
+show_talk: true
+show_ringer: true
+# Keys per row (1 to 12); without it, one row while they fit
+# columns: 5
 ```
 
 Browsers hold the sound of a page until it is tapped: the card asks for a tap
-when the door rings before that. Talking needs Home Assistant opened over HTTPS.
+when the door rings before that. Phones also play the door's sound only from a
+tap: **Answer** and **Monitor** turn it on, and when a call is answered from a
+notification the card asks for a tap to hear the door. Talking needs Home Assistant opened over HTTPS.
 
-## Phones
+## Mobile apps
 
-Each phone with the Home Assistant app can ring with a door station: **Settings →
-Devices & services → Hikvision Virtual Indoor Station**, then **Add phone** on the
-door station.
+Each phone or tablet with the Home Assistant app (**Mobile App**, as Home Assistant
+calls it) can ring with a door station: **Settings → Devices & services →
+Hikvision Virtual Indoor Station**, then **Add mobile app** on the door station.
 
 | Field | What it does |
 | --- | --- |
-| Phone | A device of the Home Assistant app (Mobile App) |
-| Do not disturb | The phone is not notified when this door station rings |
+| Mobile app | A device of the Home Assistant app (Mobile App) |
+| Do not disturb | The mobile app is not notified when this door station rings |
 | Can open the door | The notification has a button that opens the door |
 
-The last two can be changed later (**Reconfigure** on the phone); adding or
-changing a phone does not interrupt a call. When the door rings, each phone gets
+The last two can be changed later (**Reconfigure** on the mobile app); adding or
+changing one does not interrupt a call. When the door rings, each mobile app gets
 a notification with the door's picture, delivered at once (time-sensitive on
 iOS, high priority on Android), with:
 
@@ -198,7 +206,7 @@ iOS, high priority on Android), with:
 
 The buttons work only while their call lasts, and the notification goes away
 once the call is answered elsewhere, missed or over. A tap on the notification
-opens the panel without answering. A phone that leaves Home Assistant has a
+opens the panel without answering. A mobile app that leaves Home Assistant has a
 repair issue, whose fix removes it from the door station.
 
 ## Removal
@@ -206,8 +214,8 @@ repair issue, whose fix removes it from the door station.
 **Settings → Devices & services → Hikvision Virtual Indoor Station**: **Delete**
 in the three dots of the door station removes it, with its device and entities.
 Then point the VoIP line of the door station elsewhere (or disable it), and
-uninstall the integration from the Marketplace. A phone alone is removed with
-**Delete** in the three dots of its line, under its door station.
+uninstall the integration from the Marketplace. A mobile app alone is removed
+with **Delete** in the three dots of its line, under its door station.
 
 ## How the data is updated
 

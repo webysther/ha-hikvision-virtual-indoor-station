@@ -13,6 +13,11 @@ from custom_components.hikvision_virtual_indoor_station.const import (
     CALL_STATES,
     EVENT_TYPES,
 )
+from custom_components.hikvision_virtual_indoor_station.sensor import (
+    INPUT_USES,
+    OUTPUT_USES,
+)
+from custom_components.hikvision_virtual_indoor_station.setting import SETTING_KEYS
 
 INTEGRATION = (
     Path(__file__).parent.parent
@@ -58,7 +63,19 @@ def test_every_entity_has_a_name_and_an_icon() -> None:
     entities = STRINGS["entity"]
     icons = ICONS["entity"]
 
-    assert set(entities) == set(icons) == {"binary_sensor", "button", "event", "sensor"}
+    assert (
+        set(entities)
+        == set(icons)
+        == {
+            "binary_sensor",
+            "button",
+            "event",
+            "number",
+            "select",
+            "sensor",
+            "switch",
+        }
+    )
     for platform, names in entities.items():
         assert set(names) == set(icons[platform]), platform
     assert set(entities["button"]) == {
@@ -73,3 +90,27 @@ def test_every_entity_has_a_name_and_an_icon() -> None:
     assert list(event_icons["state"]) == EVENT_TYPES
     assert list(entities["sensor"]["call"]["state"]) == CALL_STATES
     assert list(icons["sensor"]["call"]["state"]) == CALL_STATES
+
+
+def test_every_setting_has_a_name() -> None:
+    """Test that each setting that is an entity has a name, on one platform only."""
+    entities = STRINGS["entity"]
+    named = [*entities["number"], *entities["select"], *entities["switch"]]
+
+    assert len(named) == len(set(named))
+    assert set(named) == {*SETTING_KEYS.values(), "open_time_numbered"}
+    assert "{door}" in entities["number"]["open_time_numbered"]["name"]
+    # The options of the selects are the door station's, in lower case
+    for name in entities["select"].values():
+        assert all(option == option.lower() for option in name["state"])
+
+
+def test_the_sensors_of_the_outputs_and_inputs() -> None:
+    """Test that each use of an output and an input has its name and icon."""
+    sensors = STRINGS["entity"]["sensor"]
+    icons = ICONS["entity"]["sensor"]
+
+    assert list(sensors["output"]["state"]) == OUTPUT_USES
+    assert list(sensors["input"]["state"]) == INPUT_USES
+    assert list(icons["input"]["state"]) == INPUT_USES
+    assert "{input}" in sensors["input"]["name"]

@@ -59,42 +59,42 @@
     },
     "config_subentries": {
         "extension": {
-            "entry_type": "Phone",
+            "entry_type": "Mobile app",
             "initiate_flow": {
-                "user": "Add phone",
-                "reconfigure": "Change phone"
+                "user": "Add mobile app",
+                "reconfigure": "Change mobile app"
             },
             "step": {
                 "user": {
-                    "title": "Add a phone",
-                    "description": "A phone with the Home Assistant app rings when the door station does: its notification shows the door, and answers, refuses or opens the door.",
+                    "title": "Add a mobile app",
+                    "description": "A device with the Home Assistant app (Mobile App) rings when the door station does: its notification shows the door, and answers, refuses or opens the door.",
                     "data": {
-                        "device_id": "Phone",
+                        "device_id": "Mobile app",
                         "do_not_disturb": "Do not disturb",
                         "open_door": "Can open the door"
                     },
                     "data_description": {
                         "device_id": "A device of the Home Assistant app (Mobile App).",
-                        "do_not_disturb": "The phone is not notified when this door station rings.",
+                        "do_not_disturb": "The mobile app is not notified when this door station rings.",
                         "open_door": "The notification has a button that opens the door."
                     }
                 },
                 "reconfigure": {
-                    "title": "Change the phone",
-                    "description": "What this phone does when the door station rings.",
+                    "title": "Change the mobile app",
+                    "description": "What this mobile app does when the door station rings.",
                     "data": {
                         "do_not_disturb": "Do not disturb",
                         "open_door": "Can open the door"
                     },
                     "data_description": {
-                        "do_not_disturb": "The phone is not notified when this door station rings.",
+                        "do_not_disturb": "The mobile app is not notified when this door station rings.",
                         "open_door": "The notification has a button that opens the door."
                     }
                 }
             },
             "abort": {
-                "already_configured": "This phone already rings with this door station.",
-                "reconfigure_successful": "The phone was changed."
+                "already_configured": "This mobile app already rings with this door station.",
+                "reconfigure_successful": "The mobile app was changed."
             }
         }
     },
@@ -137,6 +137,85 @@
                 }
             }
         },
+        "number": {
+            "microphone_volume": {
+                "name": "Microphone volume"
+            },
+            "speaker_volume": {
+                "name": "Speaker volume"
+            },
+            "talk_volume": {
+                "name": "Call volume"
+            },
+            "open_time": {
+                "name": "Door open time"
+            },
+            "open_time_numbered": {
+                "name": "Door {door} open time"
+            },
+            "day_night_sensitivity": {
+                "name": "Day/night sensitivity"
+            },
+            "brightness": {
+                "name": "Brightness"
+            },
+            "contrast": {
+                "name": "Contrast"
+            },
+            "saturation": {
+                "name": "Saturation"
+            },
+            "sharpness": {
+                "name": "Sharpness"
+            },
+            "wdr_level": {
+                "name": "WDR level"
+            }
+        },
+        "select": {
+            "day_night": {
+                "name": "Day/night mode",
+                "state": {
+                    "day": "Day",
+                    "night": "Night",
+                    "auto": "Auto",
+                    "schedule": "Schedule"
+                }
+            },
+            "wdr": {
+                "name": "WDR",
+                "state": {
+                    "close": "Off",
+                    "open": "On",
+                    "auto": "Auto"
+                }
+            },
+            "blc_area": {
+                "name": "Backlight compensation area",
+                "state": {
+                    "up": "Up",
+                    "down": "Down",
+                    "left": "Left",
+                    "right": "Right",
+                    "center": "Center"
+                }
+            },
+            "power_line_frequency": {
+                "name": "Power line frequency",
+                "state": {
+                    "50hz": "50 Hz",
+                    "60hz": "60 Hz"
+                }
+            },
+            "door_voice_prompt_type": {
+                "name": "Door voice prompt",
+                "state": {
+                    "long": "Long",
+                    "short": "Short",
+                    "doorisopen": "The door is open"
+                }
+            }
+        },
         "sensor": {
             "call": {
                 "name": "Call",
@@ -154,6 +233,29 @@
                     "disabled": "Disabled",
                     "other": "Other"
                 }
+            },
+            "input": {
+                "name": "Input {input}",
+                "state": {
+                    "door_contact": "Door contact",
+                    "exit_button": "Exit button",
+                    "disabled": "Disabled",
+                    "other": "Other"
+                }
+            },
+            "cpu_usage": {
+                "name": "CPU usage"
+            },
+            "video_sessions": {
+                "name": "Video sessions"
+            }
+        },
+        "switch": {
+            "door_voice_prompt": {
+                "name": "Voice prompt when a door opens"
+            },
+            "blc": {
+                "name": "Backlight compensation"
             }
         }
     },
@@ -193,6 +295,9 @@
         },
         "not_a_lock": {
             "message": "Door {door} does not open: its output drives no lock ({use}). Set it to Electric Lock in the web page of the door station (Access Control → I/O Settings)."
+        },
+        "setting_failed": {
+            "message": "The door station did not take the change: {error}"
         }
     },
     "issues": {
@@ -201,12 +306,12 @@
             "description": "Home Assistant has not heard the VoIP line of {name} for more than 11 minutes, so its button does not ring here.\n\nIn the web page of the door station, under the VoIP (SIP) settings: enable the line, set the server to `{address}` and the port to `{port}`, and set the audio to G.711 only. The SIP registration sensor turns on when the door station registers; this issue then goes away."
         },
         "phone_gone": {
-            "title": "A phone of {name} left Home Assistant",
+            "title": "A mobile app of {name} left Home Assistant",
             "fix_flow": {
                 "step": {
                     "confirm": {
                         "title": "Remove {phone} from {name}",
-                        "description": "The phone {phone}, an extension of {name}, is no longer a device of Home Assistant (its app was removed or signed out), so it cannot ring.\n\nSelect **Submit** to remove it from {name}. Once its app is back, add it again with **Add phone**."
+                        "description": "The mobile app {phone}, an extension of {name}, is no longer a device of Home Assistant (the app was removed or signed out), so it cannot ring.\n\nSelect **Submit** to remove it from {name}. Once the app is back, add it again with **Add mobile app**."
                     }
                 }
             }

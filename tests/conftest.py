@@ -16,10 +16,12 @@ from aiohikvision import (
     CallError,
     CallState,
     DoorCall,
+    DoorStationHealth,
     DoorStationInfo,
     EndReason,
     TalkbackStats,
 )
+from aiohikvision.isapi.model.features.inputs import Input, InputUse
 from aiohikvision.isapi.model.features.outputs import Output, OutputUse
 from aiohikvision.isapi.model.features.talk import TalkChannel
 from aiohikvision.isapi.model.inventory import Identity
@@ -53,6 +55,13 @@ INFO = DoorStationInfo(
     outputs=(
         Output(1, "COM1", OutputUse.ELECTRIC_LOCK),
         Output(2, "COM2", OutputUse.ELECTRIC_LOCK),
+    ),
+    # As a DS-KD8003 (V3.7.3) answers: inputs 2 and 4 can change, 1 and 3 cannot
+    inputs=(
+        Input(1, "AI1", InputUse.DOOR_CONTACT, (InputUse.DOOR_CONTACT,)),
+        Input(2, "AI2", InputUse.DISABLED, (InputUse.DISABLED, InputUse.DOOR_CONTACT)),
+        Input(3, "AI3", InputUse.EXIT_BUTTON, (InputUse.EXIT_BUTTON,)),
+        Input(4, "AI4", InputUse.DISABLED, (InputUse.DISABLED, InputUse.EXIT_BUTTON)),
     ),
 )
 UNIQUE_ID = IDENTITY.stable_id
@@ -195,6 +204,11 @@ def door() -> Generator[MagicMock]:
         station.read_info.return_value = INFO
         station.info = INFO
         station.read_outputs.return_value = INFO.outputs
+        station.read_inputs.return_value = INFO.inputs
+        # The DS-KD8003 of the capture: five video clients, the CPU at 88%
+        station.read_health.return_value = DoorStationHealth(88, 5)
+        station.read_settings.return_value = ()
+        station.read_setting_values.return_value = {}
         station.rtsp_url.return_value = (
             f"rtsp://admin:s3cret-pass@{DOOR_IP}:554/Streaming/Channels/101"
         )

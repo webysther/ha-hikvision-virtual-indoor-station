@@ -295,6 +295,10 @@ async def test_diagnostics(
     assert data["phones"] == [
         {"do_not_disturb": True, "open_door": False, "notify_service": False}
     ]
+    # How loaded it is, what its inputs read, and its settings
+    assert data["load"] == {"cpu_percent": 88, "video_sessions": 5}
+    assert data["inputs"] == ["door_contact", "disabled", "exit_button", "disabled"]
+    assert data["settings"] == {}
     assert "Pixel" not in str(data)
     assert DOOR_IP not in str(data)
     assert INFO.identity.serial not in str(data)

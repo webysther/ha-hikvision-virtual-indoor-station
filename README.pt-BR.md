@@ -169,27 +169,36 @@ shortcuts:
 show_name: true
 # false: sem o nome e o estado da chamada em cima da câmera
 show_state: true
+# false: esconde essa tecla
+show_monitor: true
+show_talk: true
+show_ringer: true
+# Teclas por linha (1 a 12); sem isso, uma linha enquanto couberem
+# columns: 5
 ```
 
 Os navegadores seguram o som de uma página até alguém tocar nela: o card pede um
-toque quando a porta toca antes disso. Para falar, o Home Assistant precisa estar
-aberto por HTTPS.
+toque quando a porta toca antes disso. Os celulares também só tocam o som da porta
+a partir de um toque: **Atender** e **Monitorar** ligam o som, e quando a chamada
+é atendida pela notificação o card pede um toque para ouvir a porta. Para falar,
+o Home Assistant precisa estar aberto por HTTPS.
 
-## Celulares
+## Aplicativos móveis
 
-Cada celular com o app do Home Assistant pode tocar junto com um porteiro:
-**Configurações → Dispositivos e serviços → Hikvision Virtual Indoor Station**, e
-**Adicionar celular** no porteiro.
+Cada celular ou tablet com o app do Home Assistant (**Aplicativo móvel**, como o
+Home Assistant o chama) pode tocar junto com um porteiro: **Configurações →
+Dispositivos e serviços → Hikvision Virtual Indoor Station**, e **Adicionar
+aplicativo móvel** no porteiro.
 
 | Campo | O que faz |
 | --- | --- |
-| Celular | Um dispositivo do app do Home Assistant (Mobile App) |
-| Não perturbe | O celular não é avisado quando este porteiro toca |
+| Aplicativo móvel | Um dispositivo do app do Home Assistant (Aplicativo móvel) |
+| Não perturbe | O aplicativo móvel não é avisado quando este porteiro toca |
 | Pode abrir a porta | A notificação tem um botão que abre a porta |
 
-Os dois últimos podem ser mudados depois (**Reconfigurar** no celular);
-adicionar ou mudar um celular não interrompe uma chamada. Quando a porta toca,
-cada celular recebe uma notificação com a foto da porta, entregue na hora
+Os dois últimos podem ser mudados depois (**Reconfigurar** no aplicativo móvel);
+adicionar ou mudar um não interrompe uma chamada. Quando a porta toca, cada
+aplicativo móvel recebe uma notificação com a foto da porta, entregue na hora
 (time-sensitive no iOS, prioridade alta no Android), com:
 
 - **Atender**: abre o painel do monitor interno, uma página com o card do
@@ -200,16 +209,17 @@ cada celular recebe uma notificação com a foto da porta, entregue na hora
 
 Os botões só funcionam enquanto dura a chamada deles, e a notificação some quando
 a chamada é atendida em outro lugar, perdida ou encerrada. Um toque na
-notificação abre o painel sem atender. Um celular que sai do Home Assistant
-ganha um reparo, que o remove do porteiro.
+notificação abre o painel sem atender. Um aplicativo móvel que sai do Home
+Assistant ganha um reparo, que o remove do porteiro.
 
 ## Remoção
 
 **Configurações → Dispositivos e serviços → Hikvision Virtual Indoor Station**:
 **Excluir**, nos três pontinhos do porteiro, remove o porteiro com o dispositivo
 e as entidades dele. Depois aponte a linha VoIP do porteiro para outro lugar (ou
-desligue-a) e desinstale a integração pelo Marketplace. Um celular sozinho é
-removido com **Excluir** nos três pontinhos da linha dele, debaixo do porteiro.
+desligue-a) e desinstale a integração pelo Marketplace. Um aplicativo móvel
+sozinho é removido com **Excluir** nos três pontinhos da linha dele, debaixo do
+porteiro.
 
 ## Como os dados são atualizados
 

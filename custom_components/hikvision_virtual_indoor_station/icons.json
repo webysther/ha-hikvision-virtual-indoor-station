@@ -41,6 +41,65 @@
                 }
             }
         },
+        "number": {
+            "microphone_volume": {
+                "default": "mdi:microphone"
+            },
+            "speaker_volume": {
+                "default": "mdi:volume-high"
+            },
+            "talk_volume": {
+                "default": "mdi:phone-in-talk"
+            },
+            "open_time": {
+                "default": "mdi:timer-outline"
+            },
+            "open_time_numbered": {
+                "default": "mdi:timer-outline"
+            },
+            "day_night_sensitivity": {
+                "default": "mdi:brightness-auto"
+            },
+            "brightness": {
+                "default": "mdi:brightness-6"
+            },
+            "contrast": {
+                "default": "mdi:contrast-box"
+            },
+            "saturation": {
+                "default": "mdi:palette"
+            },
+            "sharpness": {
+                "default": "mdi:image-filter-center-focus"
+            },
+            "wdr_level": {
+                "default": "mdi:hdr"
+            }
+        },
+        "select": {
+            "day_night": {
+                "default": "mdi:theme-light-dark",
+                "state": {
+                    "day": "mdi:weather-sunny",
+                    "night": "mdi:weather-night"
+                }
+            },
+            "wdr": {
+                "default": "mdi:hdr",
+                "state": {
+                    "close": "mdi:hdr-off"
+                }
+            },
+            "blc_area": {
+                "default": "mdi:select-place"
+            },
+            "power_line_frequency": {
+                "default": "mdi:sine-wave"
+            },
+            "door_voice_prompt_type": {
+                "default": "mdi:account-voice"
+            }
+        },
         "sensor": {
             "call": {
                 "default": "mdi:phone",
@@ -58,6 +117,32 @@
                     "disabled": "mdi:cancel",
                     "other": "mdi:help-circle-outline"
                 }
+            },
+            "input": {
+                "default": "mdi:import",
+                "state": {
+                    "door_contact": "mdi:door-closed",
+                    "exit_button": "mdi:gesture-tap-button",
+                    "disabled": "mdi:cancel",
+                    "other": "mdi:help-circle-outline"
+                }
+            },
+            "cpu_usage": {
+                "default": "mdi:cpu-32-bit"
+            },
+            "video_sessions": {
+                "default": "mdi:cctv"
+            }
+        },
+        "switch": {
+            "door_voice_prompt": {
+                "default": "mdi:account-voice",
+                "state": {
+                    "off": "mdi:account-voice-off"
+                }
+            },
+            "blc": {
+                "default": "mdi:brightness-7"
             }
         }
     }

@@ -26,6 +26,7 @@ import {
   panelTarget,
   screenLabel,
   screenOf,
+  soundHeld,
   shortcutService,
   shortcutView,
   shortcutsOf,
@@ -102,6 +103,15 @@ describe("configuration", () => {
       show_state: false,
     });
     assert.throws(() => checkConfig({ type: CARD, show_state: 0 }));
+    assert.deepEqual(checkConfig({ type: CARD, show_ringer: false, columns: 6 }), {
+      type: CARD,
+      show_ringer: false,
+      columns: 6,
+    });
+    assert.throws(() => checkConfig({ type: CARD, show_talk: "no" }));
+    for (const columns of [0, 2.5, 13, "4"]) {
+      assert.throws(() => checkConfig({ type: CARD, columns }));
+    }
   });
 
   it("of a new card is the first door station", () => {
@@ -334,6 +344,9 @@ describe("the editor", () => {
       shortcuts: ["light.porch", "scene.welcome"],
       show_name: true,
       show_state: true,
+      show_monitor: true,
+      show_talk: true,
+      show_ringer: true,
     });
     // The names given in YAML stay; the default way to talk is left out
     assert.deepEqual(
@@ -366,13 +379,33 @@ describe("the editor", () => {
     });
     assert.deepEqual(configFromEditor({ type: CARD }, { show_state: true }), { type: CARD });
     assert.equal(editorData({ type: CARD, show_state: false }).show_state, false);
+    // The keys that can be hidden, and how many keys a row takes
+    assert.deepEqual(
+      configFromEditor(
+        { type: CARD },
+        { show_monitor: false, show_talk: false, show_ringer: false, columns: 4 },
+      ),
+      { type: CARD, show_monitor: false, show_talk: false, show_ringer: false, columns: 4 },
+    );
+    assert.equal(editorData({ type: CARD, columns: 4 }).columns, 4);
+    assert.equal("columns" in editorData({ type: CARD }), false);
   });
 
   it("offers only the door stations of the integration, in the language of the user", () => {
     const schema = editorSchema({ ...homeAssistant(["front"]), language: "pt-BR" });
     assert.deepEqual(
       schema.map((field) => field.name),
-      ["device_id", "talk_mode", "shortcuts", "show_name", "show_state"],
+      [
+        "device_id",
+        "talk_mode",
+        "shortcuts",
+        "show_name",
+        "show_state",
+        "show_monitor",
+        "show_talk",
+        "show_ringer",
+        "columns",
+      ],
     );
     assert.equal(schema[3].label, "Mostrar nome");
     assert.equal(schema[4].label, "Mostrar estado");
@@ -430,7 +463,7 @@ describe("the keys under the screen", () => {
     });
     assert.deepEqual([monitor.active, monitor.icon], [true, "mdi:video-off-outline"]);
     assert.deepEqual([talk.active, talk.icon], [true, "mdi:microphone"]);
-    assert.deepEqual([ring.active, ring.icon], [true, "mdi:volume-off"]);
+    assert.deepEqual([ring.active, ring.icon], [true, "mdi:bell-off"]);
   });
 
   it("are named as the integration's buttons, and by the texts of the card", () => {
@@ -488,5 +521,19 @@ describe("the panel the phones open", () => {
     // Answered elsewhere, or over: nothing to answer
     assert.equal(answerFor(named("answered"), "t1"), "forget");
     assert.equal(answerFor(named("ended"), "t1"), "forget");
+  });
+});
+
+describe("the door's sound on phones", () => {
+  it("is held when the browser keeps the video muted or paused", () => {
+    const playing = { muted: false, paused: false, readyState: 4 };
+    assert.equal(soundHeld(playing, true), false);
+    // Answered from a notification: the browser kept it muted, or paused it
+    assert.equal(soundHeld({ ...playing, muted: true }, true), true);
+    assert.equal(soundHeld({ ...playing, paused: true }, true), true);
+    // Not while it loads, nor when the door should not be heard
+    assert.equal(soundHeld({ muted: true, paused: true, readyState: 0 }, true), false);
+    assert.equal(soundHeld({ ...playing, muted: true }, false), false);
+    assert.equal(soundHeld(null, true), false);
   });
 });

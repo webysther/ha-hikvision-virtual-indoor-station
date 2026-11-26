@@ -59,42 +59,42 @@
     },
     "config_subentries": {
         "extension": {
-            "entry_type": "Telefono",
+            "entry_type": "App per dispositivi mobili",
             "initiate_flow": {
-                "user": "Aggiungi telefono",
-                "reconfigure": "Modifica telefono"
+                "user": "Aggiungi app per dispositivi mobili",
+                "reconfigure": "Modifica app per dispositivi mobili"
             },
             "step": {
                 "user": {
-                    "title": "Aggiungi un telefono",
-                    "description": "Un telefono con l'app di Home Assistant suona quando suona il citofono: la sua notifica mostra la porta, e risponde, rifiuta o apre la porta.",
+                    "title": "Aggiungi un'app per dispositivi mobili",
+                    "description": "Un dispositivo con l'app di Home Assistant (App per dispositivi mobili) suona quando suona il citofono: la sua notifica mostra la porta, e risponde, rifiuta o apre la porta.",
                     "data": {
-                        "device_id": "Telefono",
+                        "device_id": "App per dispositivi mobili",
                         "do_not_disturb": "Non disturbare",
                         "open_door": "Può aprire la porta"
                     },
                     "data_description": {
                         "device_id": "Un dispositivo dell'app di Home Assistant (Mobile App).",
-                        "do_not_disturb": "Il telefono non viene avvisato quando suona questo citofono.",
+                        "do_not_disturb": "L'app non viene avvisata quando suona questo citofono.",
                         "open_door": "La notifica ha un pulsante che apre la porta."
                     }
                 },
                 "reconfigure": {
-                    "title": "Modifica il telefono",
-                    "description": "Cosa fa questo telefono quando suona il citofono.",
+                    "title": "Modifica l'app per dispositivi mobili",
+                    "description": "Cosa fa quest'app quando suona il citofono.",
                     "data": {
                         "do_not_disturb": "Non disturbare",
                         "open_door": "Può aprire la porta"
                     },
                     "data_description": {
-                        "do_not_disturb": "Il telefono non viene avvisato quando suona questo citofono.",
+                        "do_not_disturb": "L'app non viene avvisata quando suona questo citofono.",
                         "open_door": "La notifica ha un pulsante che apre la porta."
                     }
                 }
             },
             "abort": {
-                "already_configured": "Questo telefono suona già con questo citofono.",
-                "reconfigure_successful": "Il telefono è stato modificato."
+                "already_configured": "Quest'app suona già con questo citofono.",
+                "reconfigure_successful": "L'app è stata modificata."
             }
         }
     },
@@ -137,6 +137,85 @@
                 }
             }
         },
+        "number": {
+            "microphone_volume": {
+                "name": "Volume del microfono"
+            },
+            "speaker_volume": {
+                "name": "Volume dell'altoparlante"
+            },
+            "talk_volume": {
+                "name": "Volume in chiamata"
+            },
+            "open_time": {
+                "name": "Tempo di apertura della porta"
+            },
+            "open_time_numbered": {
+                "name": "Tempo di apertura della porta {door}"
+            },
+            "day_night_sensitivity": {
+                "name": "Sensibilità giorno/notte"
+            },
+            "brightness": {
+                "name": "Luminosità"
+            },
+            "contrast": {
+                "name": "Contrasto"
+            },
+            "saturation": {
+                "name": "Saturazione"
+            },
+            "sharpness": {
+                "name": "Nitidezza"
+            },
+            "wdr_level": {
+                "name": "Livello WDR"
+            }
+        },
+        "select": {
+            "day_night": {
+                "name": "Modalità giorno/notte",
+                "state": {
+                    "day": "Giorno",
+                    "night": "Notte",
+                    "auto": "Automatico",
+                    "schedule": "Programmato"
+                }
+            },
+            "wdr": {
+                "name": "WDR",
+                "state": {
+                    "close": "Spento",
+                    "open": "Acceso",
+                    "auto": "Automatico"
+                }
+            },
+            "blc_area": {
+                "name": "Area della compensazione del controluce",
+                "state": {
+                    "up": "Alto",
+                    "down": "Basso",
+                    "left": "Sinistra",
+                    "right": "Destra",
+                    "center": "Centro"
+                }
+            },
+            "power_line_frequency": {
+                "name": "Frequenza di rete",
+                "state": {
+                    "50hz": "50 Hz",
+                    "60hz": "60 Hz"
+                }
+            },
+            "door_voice_prompt_type": {
+                "name": "Messaggio vocale della porta",
+                "state": {
+                    "long": "Lungo",
+                    "short": "Breve",
+                    "doorisopen": "La porta è aperta"
+                }
+            }
+        },
         "sensor": {
             "call": {
                 "name": "Chiamata",
@@ -154,6 +233,29 @@
                     "disabled": "Disattivata",
                     "other": "Altro"
                 }
+            },
+            "input": {
+                "name": "Ingresso {input}",
+                "state": {
+                    "door_contact": "Contatto della porta",
+                    "exit_button": "Pulsante di uscita",
+                    "disabled": "Disattivato",
+                    "other": "Altro"
+                }
+            },
+            "cpu_usage": {
+                "name": "Utilizzo della CPU"
+            },
+            "video_sessions": {
+                "name": "Sessioni video"
+            }
+        },
+        "switch": {
+            "door_voice_prompt": {
+                "name": "Messaggio vocale all'apertura di una porta"
+            },
+            "blc": {
+                "name": "Compensazione del controluce"
             }
         }
     },
@@ -193,6 +295,9 @@
         },
         "not_a_lock": {
             "message": "La porta {door} non si apre: la sua uscita non comanda una serratura ({use}). Impostala su Electric Lock nella pagina web del citofono (Access Control → I/O Settings)."
+        },
+        "setting_failed": {
+            "message": "Il citofono non ha accettato la modifica: {error}"
         }
     },
     "issues": {
@@ -201,12 +306,12 @@
             "description": "Home Assistant non sente la linea VoIP di {name} da più di 11 minuti, quindi il suo pulsante non suona qui.\n\nNella pagina web del posto esterno, nelle impostazioni VoIP (SIP): abilita la linea, imposta il server `{address}` e la porta `{port}`, e lascia l'audio solo in G.711. Il sensore Registrazione SIP si accende quando il posto esterno si registra, e questo avviso scompare."
         },
         "phone_gone": {
-            "title": "Un telefono di {name} ha lasciato Home Assistant",
+            "title": "Un'app per dispositivi mobili di {name} ha lasciato Home Assistant",
             "fix_flow": {
                 "step": {
                     "confirm": {
                         "title": "Rimuovi {phone} da {name}",
-                        "description": "Il telefono {phone}, un interno di {name}, non è più un dispositivo di Home Assistant (la sua app è stata rimossa o è uscita), quindi non può suonare.\n\nSeleziona **Invia** per rimuoverlo da {name}. Quando la sua app torna, aggiungilo di nuovo con **Aggiungi telefono**."
+                        "description": "L'app {phone}, un interno di {name}, non è più un dispositivo di Home Assistant (l'app è stata rimossa o è uscita), quindi non può suonare.\n\nSeleziona **Invia** per rimuoverla da {name}. Quando l'app torna, aggiungila di nuovo con **Aggiungi app per dispositivi mobili**."
                     }
                 }
             }

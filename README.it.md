@@ -173,27 +173,36 @@ shortcuts:
 show_name: true
 # false: niente nome né stato della chiamata sopra la telecamera
 show_state: true
+# false: nasconde quel tasto
+show_monitor: true
+show_talk: true
+show_ringer: true
+# Tasti per riga (da 1 a 12); senza, una riga finché ci stanno
+# columns: 5
 ```
 
 I browser trattengono il suono di una pagina finché non la si tocca: la scheda
-chiede un tocco se la porta suona prima. Per parlare serve Home Assistant aperto
-in HTTPS.
+chiede un tocco se la porta suona prima. Anche i telefoni riproducono il suono
+della porta solo dopo un tocco: **Rispondi** e **Monitora** lo accendono, e quando
+si risponde da una notifica la scheda chiede un tocco per sentire la porta. Per
+parlare serve Home Assistant aperto in HTTPS.
 
-## Telefoni
+## App per dispositivi mobili
 
-Ogni telefono con l'app di Home Assistant può suonare con un citofono:
-**Impostazioni → Dispositivi e servizi → Hikvision Virtual Indoor Station**, poi
-**Aggiungi telefono** sul citofono.
+Ogni telefono o tablet con l'app di Home Assistant (**App per dispositivi mobili**,
+come la chiama Home Assistant) può suonare con un citofono: **Impostazioni →
+Dispositivi e servizi → Hikvision Virtual Indoor Station**, poi **Aggiungi app per
+dispositivi mobili** sul citofono.
 
 | Campo | Cosa fa |
 | --- | --- |
-| Telefono | Un dispositivo dell'app di Home Assistant (Mobile App) |
-| Non disturbare | Il telefono non viene avvisato quando suona questo citofono |
+| App per dispositivi mobili | Un dispositivo dell'app di Home Assistant (App per dispositivi mobili) |
+| Non disturbare | L'app non viene avvisata quando suona questo citofono |
 | Può aprire la porta | La notifica ha un pulsante che apre la porta |
 
-Gli ultimi due si possono cambiare dopo (**Riconfigura** sul telefono);
-aggiungere o cambiare un telefono non interrompe una chiamata. Quando la porta
-suona, ogni telefono riceve una notifica con la foto della porta, consegnata
+Gli ultimi due si possono cambiare dopo (**Riconfigura** sull'app); aggiungere o
+cambiare un'app non interrompe una chiamata. Quando la porta suona, ogni app
+riceve una notifica con la foto della porta, consegnata
 subito (time-sensitive su iOS, priorità alta su Android), con:
 
 - **Rispondi**: apre il pannello del posto interno, una pagina con la scheda del
@@ -204,15 +213,15 @@ subito (time-sensitive su iOS, priorità alta su Android), con:
 
 I pulsanti funzionano solo finché dura la loro chiamata, e la notifica sparisce
 quando la chiamata riceve risposta altrove, viene persa o finisce. Un tocco sulla
-notifica apre il pannello senza rispondere. Un telefono che lascia Home Assistant
-ha una riparazione, che lo rimuove dal citofono.
+notifica apre il pannello senza rispondere. Un'app che lascia Home Assistant ha
+una riparazione, che la rimuove dal citofono.
 
 ## Rimozione
 
 **Impostazioni → Dispositivi e servizi → Hikvision Virtual Indoor Station**:
 **Elimina**, nei tre puntini del citofono, lo rimuove con il suo dispositivo e le
 sue entità. Poi punta la linea VoIP del citofono altrove (o disattivala), e
-disinstalla l'integrazione dal Marketplace. Un solo telefono si rimuove con
+disinstalla l'integrazione dal Marketplace. Una sola app si rimuove con
 **Elimina** nei tre puntini della sua riga, sotto il suo citofono.
 
 ## Come vengono aggiornati i dati

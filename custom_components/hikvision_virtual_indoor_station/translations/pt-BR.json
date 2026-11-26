@@ -59,42 +59,42 @@
     },
     "config_subentries": {
         "extension": {
-            "entry_type": "Celular",
+            "entry_type": "Aplicativo móvel",
             "initiate_flow": {
-                "user": "Adicionar celular",
-                "reconfigure": "Alterar celular"
+                "user": "Adicionar aplicativo móvel",
+                "reconfigure": "Alterar aplicativo móvel"
             },
             "step": {
                 "user": {
-                    "title": "Adicionar um celular",
-                    "description": "Um celular com o app do Home Assistant toca quando o porteiro toca: a notificação mostra a porta, e atende, recusa ou abre a porta.",
+                    "title": "Adicionar um aplicativo móvel",
+                    "description": "Um aparelho com o app do Home Assistant (Aplicativo móvel) toca quando o porteiro toca: a notificação mostra a porta, e atende, recusa ou abre a porta.",
                     "data": {
-                        "device_id": "Celular",
+                        "device_id": "Aplicativo móvel",
                         "do_not_disturb": "Não perturbe",
                         "open_door": "Pode abrir a porta"
                     },
                     "data_description": {
                         "device_id": "Um dispositivo do app do Home Assistant (Mobile App).",
-                        "do_not_disturb": "O celular não é avisado quando este porteiro toca.",
+                        "do_not_disturb": "O aplicativo móvel não é avisado quando este porteiro toca.",
                         "open_door": "A notificação tem um botão que abre a porta."
                     }
                 },
                 "reconfigure": {
-                    "title": "Alterar o celular",
-                    "description": "O que este celular faz quando o porteiro toca.",
+                    "title": "Alterar o aplicativo móvel",
+                    "description": "O que este aplicativo móvel faz quando o porteiro toca.",
                     "data": {
                         "do_not_disturb": "Não perturbe",
                         "open_door": "Pode abrir a porta"
                     },
                     "data_description": {
-                        "do_not_disturb": "O celular não é avisado quando este porteiro toca.",
+                        "do_not_disturb": "O aplicativo móvel não é avisado quando este porteiro toca.",
                         "open_door": "A notificação tem um botão que abre a porta."
                     }
                 }
             },
             "abort": {
-                "already_configured": "Este celular já toca com este porteiro.",
-                "reconfigure_successful": "O celular foi alterado."
+                "already_configured": "Este aplicativo móvel já toca com este porteiro.",
+                "reconfigure_successful": "O aplicativo móvel foi alterado."
             }
         }
     },
@@ -137,6 +137,85 @@
                 }
             }
         },
+        "number": {
+            "microphone_volume": {
+                "name": "Volume do microfone"
+            },
+            "speaker_volume": {
+                "name": "Volume do alto-falante"
+            },
+            "talk_volume": {
+                "name": "Volume na chamada"
+            },
+            "open_time": {
+                "name": "Tempo de abertura da porta"
+            },
+            "open_time_numbered": {
+                "name": "Tempo de abertura da porta {door}"
+            },
+            "day_night_sensitivity": {
+                "name": "Sensibilidade dia/noite"
+            },
+            "brightness": {
+                "name": "Brilho"
+            },
+            "contrast": {
+                "name": "Contraste"
+            },
+            "saturation": {
+                "name": "Saturação"
+            },
+            "sharpness": {
+                "name": "Nitidez"
+            },
+            "wdr_level": {
+                "name": "Nível do WDR"
+            }
+        },
+        "select": {
+            "day_night": {
+                "name": "Modo dia/noite",
+                "state": {
+                    "day": "Dia",
+                    "night": "Noite",
+                    "auto": "Automático",
+                    "schedule": "Agendado"
+                }
+            },
+            "wdr": {
+                "name": "WDR",
+                "state": {
+                    "close": "Desligado",
+                    "open": "Ligado",
+                    "auto": "Automático"
+                }
+            },
+            "blc_area": {
+                "name": "Área da compensação de contraluz",
+                "state": {
+                    "up": "Em cima",
+                    "down": "Embaixo",
+                    "left": "Esquerda",
+                    "right": "Direita",
+                    "center": "Centro"
+                }
+            },
+            "power_line_frequency": {
+                "name": "Frequência da rede elétrica",
+                "state": {
+                    "50hz": "50 Hz",
+                    "60hz": "60 Hz"
+                }
+            },
+            "door_voice_prompt_type": {
+                "name": "Aviso de voz da porta",
+                "state": {
+                    "long": "Longo",
+                    "short": "Curto",
+                    "doorisopen": "A porta está aberta"
+                }
+            }
+        },
         "sensor": {
             "call": {
                 "name": "Chamada",
@@ -154,6 +233,29 @@
                     "disabled": "Desativada",
                     "other": "Outro"
                 }
+            },
+            "input": {
+                "name": "Entrada {input}",
+                "state": {
+                    "door_contact": "Contato da porta",
+                    "exit_button": "Botão de saída",
+                    "disabled": "Desativada",
+                    "other": "Outro"
+                }
+            },
+            "cpu_usage": {
+                "name": "Uso da CPU"
+            },
+            "video_sessions": {
+                "name": "Sessões de vídeo"
+            }
+        },
+        "switch": {
+            "door_voice_prompt": {
+                "name": "Aviso de voz ao abrir uma porta"
+            },
+            "blc": {
+                "name": "Compensação de contraluz"
             }
         }
     },
@@ -193,6 +295,9 @@
         },
         "not_a_lock": {
             "message": "A porta {door} não abre: a saída dela não aciona uma fechadura ({use}). Mude para Electric Lock na página web do porteiro (Access Control → I/O Settings)."
+        },
+        "setting_failed": {
+            "message": "O porteiro não aceitou a mudança: {error}"
         }
     },
     "issues": {
@@ -201,12 +306,12 @@
             "description": "O Home Assistant não ouve a linha VoIP de {name} há mais de 11 minutos, então o botão dele não toca aqui.\n\nNa página web do porteiro, nas configurações de VoIP (SIP): habilite a linha, ponha o servidor `{address}` e a porta `{port}`, e deixe o áudio só em G.711. O sensor Registro SIP liga quando o porteiro se registra, e este aviso some."
         },
         "phone_gone": {
-            "title": "Um celular de {name} saiu do Home Assistant",
+            "title": "Um aplicativo móvel de {name} saiu do Home Assistant",
             "fix_flow": {
                 "step": {
                     "confirm": {
                         "title": "Remover {phone} de {name}",
-                        "description": "O celular {phone}, um ramal de {name}, não é mais um dispositivo do Home Assistant (o app foi removido ou saiu da conta), então não consegue tocar.\n\nSelecione **Enviar** para removê-lo de {name}. Quando o app voltar, adicione-o de novo com **Adicionar celular**."
+                        "description": "O aplicativo móvel {phone}, um ramal de {name}, não é mais um dispositivo do Home Assistant (o app foi removido ou saiu da conta), então não consegue tocar.\n\nSelecione **Enviar** para removê-lo de {name}. Quando o app voltar, adicione-o de novo com **Adicionar aplicativo móvel**."
                     }
                 }
             }

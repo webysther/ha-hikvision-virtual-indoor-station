@@ -15,7 +15,15 @@ import hashlib
 import time
 from typing import TYPE_CHECKING, Final
 
-from aiohikvision import CallError, CallState, DoorCall, DoorStation, DoorStationInfo
+from aiohikvision import (
+    CallError,
+    CallState,
+    DoorCall,
+    DoorStation,
+    DoorStationInfo,
+    ImageValue,
+    Setting,
+)
 from aiohikvision.isapi.wire.faults import BridgeFault
 from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant, callback
@@ -37,7 +45,7 @@ if TYPE_CHECKING:
     from aiohikvision import Registration
     from homeassistant.config_entries import ConfigEntry
 
-    from .coordinator import HealthCoordinator
+    from .coordinator import HealthCoordinator, SettingsCoordinator
     from .sip import SipServer
 
 
@@ -80,6 +88,7 @@ class IndoorStation:
         self.call: DoorCall | None = None
         self.registration: Registration | None = None
         self.health: HealthCoordinator | None = None
+        self.settings: SettingsCoordinator | None = None
         # When the door's last keepalive arrived, and since when it is unheard
         self.last_heard: float | None = None
         self._unheard_since = time.monotonic()
@@ -204,10 +213,19 @@ class IndoorStation:
     @callback
     def outputs_changed(self) -> None:
         """Take the outputs, read again: a door may have gained or lost its lock."""
-        outputs = self.health.data if self.health is not None else None
-        if outputs is None or outputs == self.info.outputs:
+        health = self.health.data if self.health is not None else None
+        if health is None or health.outputs == self.info.outputs:
             return
-        self.info = replace(self.info, outputs=outputs)
+        self.info = replace(self.info, outputs=health.outputs)
+        self._notify()
+
+    @callback
+    def inputs_changed(self) -> None:
+        """Take the inputs, read again: its web page can change what each one reads."""
+        settings = self.settings.data if self.settings is not None else None
+        if settings is None or settings.inputs == self.info.inputs:
+            return
+        self.info = replace(self.info, inputs=settings.inputs)
         self._notify()
 
     @callback
@@ -331,6 +349,22 @@ class IndoorStation:
                 translation_key="open_door_failed",
                 translation_placeholders={"door": str(door), "error": str(err)},
             ) from err
+
+    async def async_set_setting(self, setting: Setting, value: str) -> None:
+        """Change a setting of the door station (it is read back); show it at once."""
+        assert self.settings is not None  # created before the platforms
+        current = self.settings.data.values.get(setting.ref)
+        field = current.field if current is not None else setting.spec.fields[0]
+        try:
+            await self.door.write_setting(setting, field, value)
+        except BridgeFault as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="setting_failed",
+                translation_placeholders={"error": str(err)},
+            ) from err
+        values = {**self.settings.data.values, setting.ref: ImageValue(field, value)}
+        self.settings.async_set_updated_data(replace(self.settings.data, values=values))
 
     async def async_close(self) -> None:
         """End the talk through the speaker and drop the repair issue."""

@@ -49,6 +49,11 @@ SIP_UNHEARD_GRACE: Final = timedelta(seconds=SIP_MAX_EXPIRES + 60)
 # entities are unavailable while it does not answer. The calls are pushed over SIP and
 # are not polled.
 HEALTH_INTERVAL: Final = timedelta(seconds=60)
+# How often the values of its settings (image, volumes, doors, voice prompt) and its
+# inputs are read again: they change only when someone changes them, and a DS-KD8003
+# (V3.7.3) runs near its limit (88% of CPU measured with five video clients), so they
+# are not asked for every minute. A change made here is seen at once.
+SETTINGS_INTERVAL: Final = timedelta(minutes=5)
 
 DEFAULT_USERNAME: Final = "admin"
 DEFAULT_PORT: Final = 80
