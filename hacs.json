@@ -1,0 +1,7 @@
+{
+  "name": "Hikvision Virtual Indoor Station",
+  "homeassistant": "2026.10.0",
+  "zip_release": true,
+  "filename": "hikvision_virtual_indoor_station.zip",
+  "hacs": "2.0.0"
+}

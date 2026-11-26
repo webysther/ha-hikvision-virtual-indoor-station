@@ -1,0 +1,151 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Adicionar um porteiro",
+                "description": "O endereço do porteiro e uma conta dele (a conta admin serve). Depois aponte a linha VoIP dele para o Home Assistant, como o README explica, para que o botão dele chame aqui.",
+                "data": {
+                    "host": "Endereço",
+                    "username": "Usuário",
+                    "password": "Senha"
+                },
+                "data_description": {
+                    "host": "O IP ou o nome do porteiro na sua rede.",
+                    "username": "Uma conta da página web do porteiro.",
+                    "password": "A senha dessa conta."
+                }
+            },
+            "reauth_confirm": {
+                "title": "Entrar de novo no porteiro",
+                "description": "O porteiro em {host} recusou a conta guardada.",
+                "data": {
+                    "username": "Usuário",
+                    "password": "Senha"
+                },
+                "data_description": {
+                    "username": "Uma conta da página web do porteiro.",
+                    "password": "A nova senha dessa conta."
+                }
+            },
+            "reconfigure": {
+                "title": "Alterar o porteiro",
+                "description": "Um novo endereço ou conta do porteiro. Tem que ser o mesmo porteiro.",
+                "data": {
+                    "host": "Endereço",
+                    "username": "Usuário",
+                    "password": "Senha"
+                },
+                "data_description": {
+                    "host": "O IP ou o nome do porteiro na sua rede.",
+                    "username": "Uma conta da página web do porteiro.",
+                    "password": "A senha dessa conta."
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "O porteiro não respondeu. Confira o endereço e se o Home Assistant chega até ele.",
+            "invalid_auth": "O porteiro recusou o usuário ou a senha.",
+            "locked_out": "O porteiro bloqueou a conta depois de tentativas erradas. Espere o desbloqueio e tente de novo.",
+            "not_door_station": "Este aparelho responde, mas não é um porteiro com vídeo.",
+            "not_isapi": "Este aparelho não fala o ISAPI da Hikvision.",
+            "unknown": "Erro inesperado."
+        },
+        "abort": {
+            "already_configured": "Este porteiro já foi adicionado.",
+            "reauth_successful": "Entrou de novo.",
+            "wrong_device": "Este é outro porteiro, não o desta entrada.",
+            "reconfigure_successful": "O porteiro foi alterado."
+        }
+    },
+    "entity": {
+        "binary_sensor": {
+            "sip_registered": {
+                "name": "Registro SIP"
+            }
+        },
+        "button": {
+            "open_door": {
+                "name": "Abrir porta"
+            },
+            "open_door_numbered": {
+                "name": "Abrir porta {door}"
+            },
+            "answer": {
+                "name": "Atender"
+            },
+            "hang_up": {
+                "name": "Desligar"
+            },
+            "reject": {
+                "name": "Recusar"
+            }
+        },
+        "event": {
+            "doorbell": {
+                "name": "Campainha",
+                "state_attributes": {
+                    "event_type": {
+                        "state": {
+                            "ring": "Tocando",
+                            "answered": "Atendida",
+                            "rejected": "Recusada",
+                            "missed": "Perdida",
+                            "ended": "Encerrada"
+                        }
+                    }
+                }
+            }
+        },
+        "sensor": {
+            "call": {
+                "name": "Chamada",
+                "state": {
+                    "idle": "Livre",
+                    "ringing": "Tocando",
+                    "answered": "Atendida"
+                }
+            }
+        }
+    },
+    "exceptions": {
+        "answer_failed": {
+            "message": "Não foi possível atender a chamada: {error}"
+        },
+        "auth_failed": {
+            "message": "O porteiro recusou a conta: {error}"
+        },
+        "call_gone": {
+            "message": "A chamada foi atendida em outro aparelho, ou já terminou."
+        },
+        "cannot_connect": {
+            "message": "O porteiro não respondeu: {error}"
+        },
+        "no_answered_call": {
+            "message": "Não há chamada em andamento."
+        },
+        "no_ringing_call": {
+            "message": "Não há chamada tocando."
+        },
+        "no_sip": {
+            "message": "O servidor SIP não está rodando."
+        },
+        "not_door_station": {
+            "message": "O aparelho neste endereço não é mais um porteiro com vídeo."
+        },
+        "open_door_failed": {
+            "message": "O porteiro não abriu a porta {door}: {error}"
+        },
+        "sip_port_in_use": {
+            "message": "A porta SIP {port} está ocupada ({error}). Outro servidor SIP, ou a integração Voice over IP, escuta nela: pare-o para que os porteiros possam chamar o Home Assistant."
+        },
+        "wrong_device": {
+            "message": "{host} agora leva a outro porteiro: reconfigure a entrada com o endereço deste."
+        }
+    },
+    "issues": {
+        "door_unheard": {
+            "title": "{name} não chama o Home Assistant",
+            "description": "O Home Assistant não ouve a linha VoIP de {name} há mais de 11 minutos, então o botão dele não toca aqui.\n\nNa página web do porteiro, nas configurações de VoIP (SIP): habilite a linha, ponha o servidor `{address}` e a porta `{port}`, e deixe o áudio só em G.711. O sensor Registro SIP liga quando o porteiro se registra, e este aviso some."
+        }
+    }
+}

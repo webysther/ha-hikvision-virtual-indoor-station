@@ -1,0 +1,151 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Aggiungi un posto esterno",
+                "description": "L'indirizzo del posto esterno e un suo account (va bene quello admin). Poi punta la sua linea VoIP verso Home Assistant, come spiega il README, così che il suo pulsante chiami qui.",
+                "data": {
+                    "host": "Indirizzo",
+                    "username": "Nome utente",
+                    "password": "Password"
+                },
+                "data_description": {
+                    "host": "L'IP o il nome del posto esterno nella tua rete.",
+                    "username": "Un account della pagina web del posto esterno.",
+                    "password": "La password di quell'account."
+                }
+            },
+            "reauth_confirm": {
+                "title": "Accedi di nuovo al posto esterno",
+                "description": "Il posto esterno su {host} ha rifiutato l'account salvato.",
+                "data": {
+                    "username": "Nome utente",
+                    "password": "Password"
+                },
+                "data_description": {
+                    "username": "Un account della pagina web del posto esterno.",
+                    "password": "La nuova password di quell'account."
+                }
+            },
+            "reconfigure": {
+                "title": "Modifica il posto esterno",
+                "description": "Un nuovo indirizzo o account del posto esterno. Deve essere lo stesso posto esterno.",
+                "data": {
+                    "host": "Indirizzo",
+                    "username": "Nome utente",
+                    "password": "Password"
+                },
+                "data_description": {
+                    "host": "L'IP o il nome del posto esterno nella tua rete.",
+                    "username": "Un account della pagina web del posto esterno.",
+                    "password": "La password di quell'account."
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Il posto esterno non ha risposto. Controlla l'indirizzo e che Home Assistant lo raggiunga.",
+            "invalid_auth": "Il posto esterno ha rifiutato nome utente o password.",
+            "locked_out": "Il posto esterno ha bloccato l'account dopo accessi falliti. Attendi lo sblocco e riprova.",
+            "not_door_station": "Questo dispositivo risponde, ma non è un posto esterno video.",
+            "not_isapi": "Questo dispositivo non parla l'ISAPI di Hikvision.",
+            "unknown": "Errore imprevisto."
+        },
+        "abort": {
+            "already_configured": "Questo posto esterno è già stato aggiunto.",
+            "reauth_successful": "Accesso eseguito di nuovo.",
+            "wrong_device": "Questo è un altro posto esterno, non quello di questa voce.",
+            "reconfigure_successful": "Il posto esterno è stato modificato."
+        }
+    },
+    "entity": {
+        "binary_sensor": {
+            "sip_registered": {
+                "name": "Registrazione SIP"
+            }
+        },
+        "button": {
+            "open_door": {
+                "name": "Apri porta"
+            },
+            "open_door_numbered": {
+                "name": "Apri porta {door}"
+            },
+            "answer": {
+                "name": "Rispondi"
+            },
+            "hang_up": {
+                "name": "Riaggancia"
+            },
+            "reject": {
+                "name": "Rifiuta"
+            }
+        },
+        "event": {
+            "doorbell": {
+                "name": "Campanello",
+                "state_attributes": {
+                    "event_type": {
+                        "state": {
+                            "ring": "Squilla",
+                            "answered": "Risposta",
+                            "rejected": "Rifiutata",
+                            "missed": "Persa",
+                            "ended": "Terminata"
+                        }
+                    }
+                }
+            }
+        },
+        "sensor": {
+            "call": {
+                "name": "Chiamata",
+                "state": {
+                    "idle": "Libero",
+                    "ringing": "Squilla",
+                    "answered": "In corso"
+                }
+            }
+        }
+    },
+    "exceptions": {
+        "answer_failed": {
+            "message": "Impossibile rispondere alla chiamata: {error}"
+        },
+        "auth_failed": {
+            "message": "Il posto esterno ha rifiutato l'account: {error}"
+        },
+        "call_gone": {
+            "message": "La chiamata ha avuto risposta altrove, oppure è terminata."
+        },
+        "cannot_connect": {
+            "message": "Il posto esterno non ha risposto: {error}"
+        },
+        "no_answered_call": {
+            "message": "Nessuna chiamata in corso."
+        },
+        "no_ringing_call": {
+            "message": "Nessuna chiamata che squilla."
+        },
+        "no_sip": {
+            "message": "Il server SIP non è in funzione."
+        },
+        "not_door_station": {
+            "message": "Il dispositivo a questo indirizzo non è più un posto esterno video."
+        },
+        "open_door_failed": {
+            "message": "Il posto esterno non ha aperto la porta {door}: {error}"
+        },
+        "sip_port_in_use": {
+            "message": "La porta SIP {port} è occupata ({error}). Un altro server SIP, o l'integrazione Voice over IP, è in ascolto: fermalo perché i posti esterni possano chiamare Home Assistant."
+        },
+        "wrong_device": {
+            "message": "{host} ora raggiunge un altro posto esterno: riconfigura la voce con l'indirizzo di questo."
+        }
+    },
+    "issues": {
+        "door_unheard": {
+            "title": "{name} non chiama Home Assistant",
+            "description": "Home Assistant non sente la linea VoIP di {name} da più di 11 minuti, quindi il suo pulsante non suona qui.\n\nNella pagina web del posto esterno, nelle impostazioni VoIP (SIP): abilita la linea, imposta il server `{address}` e la porta `{port}`, e lascia l'audio solo in G.711. Il sensore Registrazione SIP si accende quando il posto esterno si registra, e questo avviso scompare."
+        }
+    }
+}

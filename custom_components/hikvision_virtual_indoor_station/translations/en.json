@@ -1,0 +1,151 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Add a door station",
+                "description": "The door station's address and an account of it (its admin account works). Then point its VoIP line at Home Assistant, as the README explains, so that its button calls here.",
+                "data": {
+                    "host": "Host",
+                    "username": "Username",
+                    "password": "Password"
+                },
+                "data_description": {
+                    "host": "The IP address or name of the door station on your network.",
+                    "username": "An account of the door station's web page.",
+                    "password": "The password of that account."
+                }
+            },
+            "reauth_confirm": {
+                "title": "Sign in to the door station again",
+                "description": "The door station at {host} refused the stored account.",
+                "data": {
+                    "username": "Username",
+                    "password": "Password"
+                },
+                "data_description": {
+                    "username": "An account of the door station's web page.",
+                    "password": "The new password of that account."
+                }
+            },
+            "reconfigure": {
+                "title": "Change the door station",
+                "description": "A new address or account of the door station. It must be the same door station.",
+                "data": {
+                    "host": "Host",
+                    "username": "Username",
+                    "password": "Password"
+                },
+                "data_description": {
+                    "host": "The IP address or name of the door station on your network.",
+                    "username": "An account of the door station's web page.",
+                    "password": "The password of that account."
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "The door station did not answer. Check its address, and that Home Assistant reaches it.",
+            "invalid_auth": "The door station refused the username or password.",
+            "locked_out": "The door station locked the account after failed logins. Wait for it to unlock and try again.",
+            "not_door_station": "This device answers, but it is no video door station.",
+            "not_isapi": "This device does not speak Hikvision ISAPI.",
+            "unknown": "Unexpected error."
+        },
+        "abort": {
+            "already_configured": "This door station is already added.",
+            "reauth_successful": "Signed in again.",
+            "wrong_device": "This is another door station than the one of this entry.",
+            "reconfigure_successful": "The door station was changed."
+        }
+    },
+    "entity": {
+        "binary_sensor": {
+            "sip_registered": {
+                "name": "SIP registration"
+            }
+        },
+        "button": {
+            "open_door": {
+                "name": "Open door"
+            },
+            "open_door_numbered": {
+                "name": "Open door {door}"
+            },
+            "answer": {
+                "name": "Answer"
+            },
+            "hang_up": {
+                "name": "Hang up"
+            },
+            "reject": {
+                "name": "Reject"
+            }
+        },
+        "event": {
+            "doorbell": {
+                "name": "Doorbell",
+                "state_attributes": {
+                    "event_type": {
+                        "state": {
+                            "ring": "Ringing",
+                            "answered": "Answered",
+                            "rejected": "Rejected",
+                            "missed": "Missed",
+                            "ended": "Ended"
+                        }
+                    }
+                }
+            }
+        },
+        "sensor": {
+            "call": {
+                "name": "Call",
+                "state": {
+                    "idle": "Idle",
+                    "ringing": "Ringing",
+                    "answered": "Answered"
+                }
+            }
+        }
+    },
+    "exceptions": {
+        "answer_failed": {
+            "message": "The call could not be answered: {error}"
+        },
+        "auth_failed": {
+            "message": "The door station refused the account: {error}"
+        },
+        "call_gone": {
+            "message": "The call was answered elsewhere, or it has ended."
+        },
+        "cannot_connect": {
+            "message": "The door station did not answer: {error}"
+        },
+        "no_answered_call": {
+            "message": "There is no call in progress."
+        },
+        "no_ringing_call": {
+            "message": "There is no call ringing."
+        },
+        "no_sip": {
+            "message": "The SIP server is not running."
+        },
+        "not_door_station": {
+            "message": "The device at this address is no longer a video door station."
+        },
+        "open_door_failed": {
+            "message": "The door station did not open door {door}: {error}"
+        },
+        "sip_port_in_use": {
+            "message": "The SIP port {port} is taken ({error}). Another SIP server, or the Voice over IP integration, listens there: stop it so that door stations can call Home Assistant."
+        },
+        "wrong_device": {
+            "message": "{host} now reaches another door station: reconfigure the entry with the address of this one."
+        }
+    },
+    "issues": {
+        "door_unheard": {
+            "title": "{name} does not call Home Assistant",
+            "description": "Home Assistant has not heard the VoIP line of {name} for more than 11 minutes, so its button does not ring here.\n\nIn the web page of the door station, under the VoIP (SIP) settings: enable the line, set the server to `{address}` and the port to `{port}`, and set the audio to G.711 only. The SIP registration sensor turns on when the door station registers; this issue then goes away."
+        }
+    }
+}

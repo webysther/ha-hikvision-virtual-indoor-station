@@ -1,0 +1,124 @@
+rules:
+  # Bronze
+  action-setup:
+    status: exempt
+    comment: The integration has no actions; its commands are buttons.
+  appropriate-polling:
+    status: done
+    comment: >-
+      The calls are pushed over SIP. The door station is only asked who it is once a
+      minute (one small ISAPI request), to know whether it answers.
+  brands:
+    status: done
+    comment: >-
+      Original art of an indoor station in the brand folder of the integration, read by
+      Home Assistant 2026.3 and newer; no trademark of Hikvision is used.
+  common-modules:
+    status: done
+    comment: >-
+      entity.py (the device and the availability), coordinator.py (the health check),
+      station.py (the calls and the commands of a door station), sip.py (the SIP
+      server shared by the entries).
+  config-flow-test-coverage: done
+  config-flow:
+    status: done
+    comment: Every field has a data description.
+  dependency-transparency:
+    status: done
+    comment: aiohikvision, on PyPI, built and published by its own GitHub workflow.
+  docs-actions:
+    status: exempt
+    comment: The integration has no actions.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  entity-event-setup:
+    status: done
+    comment: >-
+      The entities follow their station from async_added_to_hass, with async_on_remove;
+      the doorbell hears each change of a call.
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data: done
+  test-before-configure: done
+  test-before-setup:
+    status: done
+    comment: >-
+      The door station is asked who it is before the platforms load: a refused account
+      asks to sign in again, another device stops the entry, an unanswered request and a
+      taken SIP port are retried.
+  unique-config-entry: done
+  # Silver
+  action-exceptions:
+    status: done
+    comment: >-
+      The buttons raise translated errors: no call ringing or in progress, a call
+      answered elsewhere, a door that did not open.
+  config-entry-unloading: done
+  docs-configuration-parameters:
+    status: exempt
+    comment: The integration has no options.
+  docs-installation-parameters: done
+  entity-unavailable: done
+  integration-owner: done
+  log-when-unavailable:
+    status: done
+    comment: The health coordinator logs once when the door station stops answering, and once when it answers again.
+  parallel-updates: done
+  reauthentication-flow: done
+  test-coverage: done
+
+  # Gold
+  devices: done
+  diagnostics: done
+  discovery-update-info:
+    status: exempt
+    comment: >-
+      Hikvision devices announce themselves only through SADP, which Home Assistant does
+      not listen to; matching DHCP by MAC address would offer every Hikvision camera, not
+      the door stations.
+  discovery:
+    status: exempt
+    comment: >-
+      Hikvision devices announce themselves only through SADP, which Home Assistant does
+      not listen to; matching DHCP by MAC address would offer every Hikvision camera, not
+      the door stations.
+  docs-data-update: done
+  docs-examples: done
+  docs-known-limitations: done
+  docs-supported-devices: done
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
+  dynamic-devices:
+    status: exempt
+    comment: Each entry is one door station, its one device.
+  entity-category: done
+  entity-device-class: done
+  entity-disabled-by-default:
+    status: exempt
+    comment: >-
+      Every entity is a control or a state of the indoor station; the one diagnostic
+      entity, the SIP registration, tells whether the door station can call at all.
+  entity-translations: done
+  exception-translations: done
+  icon-translations: done
+  reconfiguration-flow: done
+  repair-issues:
+    status: done
+    comment: >-
+      A door station whose VoIP line has not reached Home Assistant for longer than a
+      registration lasts has an issue saying how to point it here.
+  stale-devices:
+    status: exempt
+    comment: Each entry is one door station; its device goes with the entry.
+
+  # Platinum
+  async-dependency: done
+  inject-websession:
+    status: done
+    comment: >-
+      aiohikvision takes the session of Home Assistant. Only the two-way audio upload
+      opens its own socket: Hikvision devices read it as an endless HTTP body, which no
+      HTTP client can send.
+  strict-typing: done

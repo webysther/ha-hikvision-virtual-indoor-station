@@ -1,0 +1,55 @@
+{
+    "entity": {
+        "binary_sensor": {
+            "sip_registered": {
+                "default": "mdi:phone-check",
+                "state": {
+                    "off": "mdi:phone-off"
+                }
+            }
+        },
+        "button": {
+            "answer": {
+                "default": "mdi:phone"
+            },
+            "hang_up": {
+                "default": "mdi:phone-hangup"
+            },
+            "open_door": {
+                "default": "mdi:door-open"
+            },
+            "open_door_numbered": {
+                "default": "mdi:door-open"
+            },
+            "reject": {
+                "default": "mdi:phone-cancel"
+            }
+        },
+        "event": {
+            "doorbell": {
+                "default": "mdi:doorbell",
+                "state_attributes": {
+                    "event_type": {
+                        "state": {
+                            "ring": "mdi:doorbell-video",
+                            "answered": "mdi:phone-in-talk",
+                            "rejected": "mdi:phone-cancel",
+                            "missed": "mdi:phone-missed",
+                            "ended": "mdi:phone-hangup"
+                        }
+                    }
+                }
+            }
+        },
+        "sensor": {
+            "call": {
+                "default": "mdi:phone",
+                "state": {
+                    "idle": "mdi:phone-outline",
+                    "ringing": "mdi:phone-ring",
+                    "answered": "mdi:phone-in-talk"
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,62 @@
+name: Release Workflow
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write # upload hikvision_virtual_indoor_station.zip to the release
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v7
+
+      - name: Get release version
+        id: version
+        uses: home-assistant/actions/helpers/version@master
+
+      - name: Get integration information
+        id: information
+        run: |
+          name=$(find custom_components/ -type d -maxdepth 1 | tail -n 1 | cut -d "/" -f2)
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+      - name: Set version number
+        run: |
+          jq '.version = "${{ steps.version.outputs.version }}"' \
+            "${{ github.workspace }}/custom_components/${{ steps.information.outputs.name }}/manifest.json" > tmp \
+            && mv -f tmp "${{ github.workspace }}/custom_components/${{ steps.information.outputs.name }}/manifest.json"
+      - name: Validate data
+        run: |
+          manifestversion=$(jq -r '.version' ${{ github.workspace }}/custom_components/${{ steps.information.outputs.name }}/manifest.json)
+          if [ "$manifestversion" != "${{ steps.version.outputs.version }}" ]; then
+            echo "The version in custom_components/${{ steps.information.outputs.name }}/manifest.json was not correct"
+            echo "$manifestversion"
+            exit 1
+          fi
+
+      - name: Autobump version
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          PLACEHOLDER='__version__ = "develop"'
+          VERSION_FILE=custom_components/${{ steps.information.outputs.name }}/version.py
+          # ensure the placeholder is there. If grep doesn't find the placeholder
+          # it exits with exit code 1 and github actions aborts the build.
+          grep "$PLACEHOLDER" "$VERSION_FILE"
+          sed -i "s/$PLACEHOLDER/__version__ = \"${VERSION}\"/g" "$VERSION_FILE"
+        shell: bash
+
+      - name: Create zip file for the integration
+        run: |
+          cd "${{ github.workspace }}/custom_components/${{ steps.information.outputs.name }}"
+          zip ${{ steps.information.outputs.name }}.zip -r ./
+      - name: Upload the zip file as a release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+          ZIP: custom_components/${{ steps.information.outputs.name }}/${{ steps.information.outputs.name }}.zip
+        # --clobber replaces the zip of a previous run, so the workflow can be re-run
+        run: gh release upload "$TAG" "$ZIP" --clobber --repo "$GITHUB_REPOSITORY"

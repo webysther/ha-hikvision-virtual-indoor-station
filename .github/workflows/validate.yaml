@@ -1,0 +1,35 @@
+name: Validate
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  validate-hassfest:
+    runs-on: "ubuntu-26.04"
+    name: With hassfest
+    steps:
+      - name: Checkout the repository
+        uses: "actions/checkout@v7"
+
+      - name: Hassfest validation
+        uses: "home-assistant/actions/hassfest@master"
+
+  validate-marketplace:
+    runs-on: "ubuntu-26.04"
+    name: With the Marketplace checks
+    steps:
+      - name: Checkout the repository
+        uses: "actions/checkout@v7"
+
+      # The checks of the Marketplace catalog are still those of the HACS action.
+      - name: Marketplace validation
+        uses: "hacs/action@main"
+        with:
+          category: "integration"

@@ -1,0 +1,14 @@
+{
+	"domain": "hikvision_virtual_indoor_station",
+	"name": "Hikvision Virtual Indoor Station",
+	"codeowners": ["@webysther"],
+	"config_flow": true,
+	"dependencies": ["network"],
+	"documentation": "https://github.com/webysther/ha-hikvision-virtual-indoor-station",
+	"integration_type": "device",
+	"iot_class": "local_push",
+	"issue_tracker": "https://github.com/webysther/ha-hikvision-virtual-indoor-station/issues",
+	"loggers": ["aiohikvision", "aiosipua"],
+	"requirements": ["aiohikvision==0.1.0"],
+	"version": "0.0.0"
+}

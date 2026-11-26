@@ -1,0 +1,9 @@
+pytest-homeassistant-custom-component==0.13.375
+# Type checking, for the strict-typing rule of the quality scale
+mypy==2.4.1
+ruff==0.14.4
+# Requirement of Home Assistant's camera, not installed by the test harness
+PyTurboJPEG==1.8.3
+# Requirement of the integration (manifest.json), not installed by the test harness.
+# Until its first release, install it from its repository: pip install -e ../aiohikvision
+aiohikvision==0.1.0

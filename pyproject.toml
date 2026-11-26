@@ -1,0 +1,70 @@
+[project]
+# Metadata of the repository. The integration is installed from the Marketplace of Home
+# Assistant, not from PyPI: its requirements are in
+# custom_components/hikvision_virtual_indoor_station/manifest.json.
+name = "ha-hikvision-virtual-indoor-station"
+version = "0.0.0"
+description = "Home Assistant as the indoor station of a Hikvision video door station: its calls ring, are answered and talked through on dashboards and phones, and its doors open"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Webysther Sperandio" }]
+requires-python = ">=3.13"
+keywords = [
+  "door station",
+  "doorbell",
+  "hikvision",
+  "home assistant",
+  "indoor station",
+  "intercom",
+  "isapi",
+  "marketplace",
+  "sip",
+  "video intercom",
+]
+
+[project.urls]
+Homepage = "https://github.com/webysther/ha-hikvision-virtual-indoor-station"
+Issues = "https://github.com/webysther/ha-hikvision-virtual-indoor-station/issues"
+
+[tool.ruff.lint]
+# The rules of the code of Home Assistant that matter most here
+select = ["B", "C4", "D", "E", "F", "I", "PL", "PT", "RUF", "SIM", "UP", "W"]
+ignore = [
+  "D203",    # incompatible with D211
+  "D213",    # incompatible with D212
+  "PLR2004", # magic values in the assertions of the tests
+]
+
+[tool.ruff.lint.isort]
+# As Home Assistant sorts its imports
+force-sort-within-sections = true
+known-first-party = ["custom_components"]
+combine-as-imports = true
+
+[tool.mypy]
+# The strict-typing rule of the Home Assistant integration quality scale
+files = ["custom_components/hikvision_virtual_indoor_station"]
+python_version = "3.14"
+strict = true
+follow_imports = "silent"
+
+[[tool.mypy.overrides]]
+# Home Assistant's packages hand their names on by import (websocket_api, camera, ...)
+module = ["homeassistant.*"]
+implicit_reexport = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["custom_components/hikvision_virtual_indoor_station"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 95
+exclude_also = ["if TYPE_CHECKING:"]
