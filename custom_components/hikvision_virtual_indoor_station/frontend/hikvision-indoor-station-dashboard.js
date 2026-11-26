@@ -48,6 +48,7 @@ export const KEYS = ["call", "doorbell", "sip_registered", "answer", "hang_up", 
  *   language?: string,
  *   connection?: any,
  *   callWS?: (message: Record<string, any>) => Promise<any>,
+ *   callService?: (domain: string, service: string, data?: Record<string, any>) => Promise<any>,
  * }} Hass The part of the `hass` object of the frontend these modules read.
  * @typedef {{
  *   device_id: string,
@@ -154,6 +155,11 @@ export const TEXTS = {
     mute_ring: "Mute ringer",
     unmute_ring: "Ring",
     tap_for_sound: "Tap the card to let the browser ring.",
+    editor_device: "Door station",
+    editor_talk_mode: "Push-to-talk",
+    talk_hold: "Hold to talk",
+    talk_toggle: "Press to talk, press again to stop",
+    editor_shortcuts: "Shortcuts (lights, scenes, other doors…)",
   },
   it: {
     description: "Il posto interno di un citofono Hikvision: rispondi, parla, apri la porta.",
@@ -175,6 +181,11 @@ export const TEXTS = {
     mute_ring: "Silenzia suoneria",
     unmute_ring: "Suoneria",
     tap_for_sound: "Tocca la scheda per far suonare il browser.",
+    editor_device: "Citofono",
+    editor_talk_mode: "Premi per parlare",
+    talk_hold: "Tieni premuto per parlare",
+    talk_toggle: "Premi per parlare, premi di nuovo per smettere",
+    editor_shortcuts: "Scorciatoie (luci, scene, altre porte…)",
   },
   "pt-BR": {
     description: "O monitor interno de um porteiro Hikvision: atender, falar, abrir a porta.",
@@ -196,6 +207,11 @@ export const TEXTS = {
     mute_ring: "Silenciar campainha",
     unmute_ring: "Campainha",
     tap_for_sound: "Toque no card para o navegador poder tocar.",
+    editor_device: "Porteiro",
+    editor_talk_mode: "Apertar para falar",
+    talk_hold: "Segurar para falar",
+    talk_toggle: "Apertar para falar, apertar de novo para parar",
+    editor_shortcuts: "Atalhos (luzes, cenas, outras portas…)",
   },
 };
 

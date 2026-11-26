@@ -16,6 +16,8 @@
   <a href="https://github.com/webysther/ha-hikvision-virtual-indoor-station/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/webysther/ha-hikvision-virtual-indoor-station?color=41BDF5"></a>
 </p>
 
+<p align="center"><b>English</b> · <a href="https://github.com/webysther/ha-hikvision-virtual-indoor-station/blob/main/README.it.md">Italiano</a> · <a href="https://github.com/webysther/ha-hikvision-virtual-indoor-station/blob/main/README.pt-BR.md">Português (Brasil)</a></p>
+
 Make Home Assistant the indoor station of your Hikvision video door station. Its
 button rings in Home Assistant, on your dashboards and phones: you answer, talk,
 hang up or refuse the call, and open the door.
@@ -121,6 +123,44 @@ Then point the door station at Home Assistant, in its web page:
 
 The **SIP registration** sensor turns on once the door station registers. The
 address, account and password can be changed later with **Reconfigure**.
+
+## Dashboard and card
+
+The integration brings its own card and dashboard: there is nothing else to
+install.
+
+- **The dashboard**: **Settings → Dashboards → Add dashboard → Hikvision Virtual
+  Indoor Station**. It has a view for each door station, with its card and its
+  activity (rings, calls, registration).
+- **The card**: **Hikvision Virtual Indoor Station** in the card picker of any
+  dashboard, with a visual editor. It is laid out like the screen of an indoor
+  station:
+  - the door's camera, live while the door rings, during a call or while you
+    monitor, and its picture otherwise;
+  - **Answer** and **Reject** while the door rings, **Hang up** once answered,
+    **Monitor** while idle, and **Mute ringer** for this browser;
+  - **Push to talk**: hold it (or the space bar on it). Your voice goes with the
+    call, or through the door's speaker while idle, and the door's sound is
+    muted while you talk;
+  - a key for each door, and your shortcuts.
+
+```yaml
+type: custom:hikvision-indoor-station-card
+# The door station (its device); the first one when left out
+device_id: 0123456789abcdef0123456789abcdef
+# hold (the default) or toggle: press once to talk, once to stop
+talk_mode: hold
+# Other entities: buttons are pressed, scenes and scripts turned on,
+# automations triggered, the rest toggled
+shortcuts:
+  - light.porch
+  - entity: scene.welcome
+    name: Welcome
+    icon: mdi:hand-wave
+```
+
+Browsers hold the sound of a page until it is tapped: the card asks for a tap
+when the door rings before that. Talking needs Home Assistant opened over HTTPS.
 
 ## Removal
 

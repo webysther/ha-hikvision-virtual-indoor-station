@@ -56,9 +56,13 @@ export { CARD };
  *   A button of the main row.
  * @typedef {"hold" | "toggle"} TalkMode Push-to-talk: talk while the button is held, or
  *   from one press to the next.
- * @typedef {{ type: string, device_id?: string, talk_mode?: TalkMode }} CardConfig
+ * @typedef {{ entity: string, name?: string, icon?: string }} Shortcut A button of the card
+ *   for another entity: a light, a scene, another door.
+ * @typedef {{ type: string, device_id?: string, talk_mode?: TalkMode,
+ *   shortcuts?: Array<string | Shortcut> }} CardConfig
  * @typedef {{ card: HTMLElement, screen: HTMLElement, name: HTMLElement, state: HTMLElement,
- *   warning: HTMLElement, actions: HTMLElement, talk: HTMLElement, doors: HTMLElement }} Parts
+ *   warning: HTMLElement, actions: HTMLElement, talk: HTMLElement, doors: HTMLElement,
+ *   shortcuts: HTMLElement }} Parts
  *   The parts of the card.
  */
 
@@ -264,7 +268,147 @@ export function checkConfig(config) {
   if (config.talk_mode !== undefined && !["hold", "toggle"].includes(config.talk_mode)) {
     throw new Error("talk_mode must be hold or toggle");
   }
+  if (config.shortcuts !== undefined) {
+    const valid = (/** @type {any} */ item) =>
+      typeof item === "string" ||
+      (item && typeof item === "object" && typeof item.entity === "string");
+    if (!Array.isArray(config.shortcuts) || !config.shortcuts.every(valid)) {
+      throw new Error("shortcuts must be a list of entities, or of { entity, name, icon }");
+    }
+  }
   return config;
+}
+
+/**
+ * Return the shortcuts of a card, each as `{ entity, name?, icon? }`.
+ *
+ * @param {CardConfig} config
+ * @returns {Shortcut[]}
+ */
+export function shortcutsOf(config) {
+  return (config.shortcuts ?? []).map((item) =>
+    typeof item === "string" ? { entity: item } : item,
+  );
+}
+
+/**
+ * The action of a shortcut, by the domain of its entity: buttons are pressed, scenes and
+ * scripts turned on, automations triggered; anything else is toggled.
+ */
+export const SHORTCUT_SERVICES = /** @type {Record<string, [string, string]>} */ ({
+  button: ["button", "press"],
+  input_button: ["input_button", "press"],
+  scene: ["scene", "turn_on"],
+  script: ["script", "turn_on"],
+  automation: ["automation", "trigger"],
+});
+
+/** The icon of a shortcut whose entity has none of its own, by domain. */
+export const SHORTCUT_ICONS = /** @type {Record<string, string>} */ ({
+  light: "mdi:lightbulb",
+  switch: "mdi:toggle-switch-variant",
+  lock: "mdi:lock",
+  cover: "mdi:garage",
+  scene: "mdi:palette",
+  script: "mdi:script-text",
+  automation: "mdi:robot",
+  button: "mdi:gesture-tap-button",
+});
+
+/**
+ * Return the service a shortcut calls.
+ *
+ * @param {string} entityId
+ */
+export function shortcutService(entityId) {
+  const [domain, service] = SHORTCUT_SERVICES[entityId.split(".")[0]] ?? [
+    "homeassistant",
+    "toggle",
+  ];
+  return { domain, service, data: { entity_id: entityId } };
+}
+
+/**
+ * Return how a shortcut shows: its name, its icon, and whether its entity is on.
+ *
+ * @param {Hass} hass
+ * @param {Shortcut} shortcut
+ */
+export function shortcutView(hass, shortcut) {
+  const state = hass.states[shortcut.entity];
+  const domain = shortcut.entity.split(".")[0];
+  return {
+    name: shortcut.name ?? state?.attributes.friendly_name ?? shortcut.entity,
+    icon:
+      shortcut.icon ?? state?.attributes.icon ?? SHORTCUT_ICONS[domain] ?? "mdi:gesture-tap-button",
+    active: ["on", "open", "unlocked"].includes(state?.state ?? ""),
+    available: Boolean(state) && state?.state !== "unavailable",
+  };
+}
+
+/**
+ * Return the values of the editor of a card: the shortcuts as their entities.
+ *
+ * @param {CardConfig} config
+ */
+export function editorData(config) {
+  return {
+    device_id: config.device_id,
+    talk_mode: config.talk_mode ?? "hold",
+    shortcuts: shortcutsOf(config).map((shortcut) => shortcut.entity),
+  };
+}
+
+/**
+ * Return the configuration the editor makes: the shortcuts keep the names and icons
+ * given in YAML, and the defaults are left out.
+ *
+ * @param {CardConfig} config
+ * @param {{ device_id?: string, talk_mode?: TalkMode, shortcuts?: string[] }} value
+ * @returns {CardConfig}
+ */
+export function configFromEditor(config, value) {
+  const given = new Map(shortcutsOf(config).map((shortcut) => [shortcut.entity, shortcut]));
+  /** @type {CardConfig} */
+  const result = { type: config.type };
+  if (value.device_id) result.device_id = value.device_id;
+  if (value.talk_mode && value.talk_mode !== "hold") result.talk_mode = value.talk_mode;
+  const shortcuts = (value.shortcuts ?? []).map((entity) => {
+    const shortcut = given.get(entity);
+    return shortcut && (shortcut.name || shortcut.icon) ? shortcut : entity;
+  });
+  if (shortcuts.length) result.shortcuts = shortcuts;
+  return result;
+}
+
+/**
+ * Return the form of the editor: the door station, the way to talk, the shortcuts.
+ *
+ * @param {Hass} hass
+ */
+export function editorSchema(hass) {
+  const texts = textsIn(hass.language);
+  return [
+    {
+      name: "device_id",
+      label: texts.editor_device,
+      selector: { device: { filter: { integration: PLATFORM } } },
+    },
+    {
+      name: "talk_mode",
+      label: texts.editor_talk_mode,
+      selector: {
+        select: {
+          mode: "list",
+          options: [
+            { value: "hold", label: texts.talk_hold },
+            { value: "toggle", label: texts.talk_toggle },
+          ],
+        },
+      },
+    },
+    { name: "shortcuts", label: texts.editor_shortcuts, selector: { entity: { multiple: true } } },
+  ];
 }
 
 /**
@@ -391,6 +535,18 @@ if (typeof customElements !== "undefined") {
     }
     const timeout = new Promise((resolve) => setTimeout(() => resolve(false), STREAM_WAIT));
     return Promise.race([customElements.whenDefined("ha-camera-stream").then(() => true), timeout]);
+  }
+
+  /**
+   * Have the frontend define its forms, which it loads with the editors of its own
+   * cards: the editor of a tile has one.
+   */
+  async function loadForms() {
+    if (customElements.get("ha-form")) return;
+    const helpers = await /** @type {any} */ (window).loadCardHelpers();
+    helpers.createCardElement({ type: "tile", entity: "sun.sun" });
+    await customElements.whenDefined("hui-tile-card");
+    await /** @type {any} */ (customElements.get("hui-tile-card")).getConfigElement();
   }
 
   /** Return whether this browser muted its ringer; a page without storage rings. */
@@ -626,9 +782,18 @@ if (typeof customElements !== "undefined") {
         actions: part("div", "row actions"),
         talk: part("div", "row talk"),
         doors: part("div", "row doors"),
+        shortcuts: part("div", "row shortcuts"),
       };
       header.append(parts.name, parts.state);
-      card.append(parts.screen, header, parts.warning, parts.actions, parts.talk, parts.doors);
+      card.append(
+        parts.screen,
+        header,
+        parts.warning,
+        parts.actions,
+        parts.talk,
+        parts.doors,
+        parts.shortcuts,
+      );
       root.replaceChildren(style, card);
       parts.talk.append(this.#talkButton());
       return parts;
@@ -680,6 +845,7 @@ if (typeof customElements !== "undefined") {
         parts.warning.hidden = false;
         parts.actions.replaceChildren();
         parts.doors.replaceChildren();
+        parts.shortcuts.replaceChildren();
         this.#ringer.stop();
         return;
       }
@@ -702,6 +868,7 @@ if (typeof customElements !== "undefined") {
       this.#renderActions(hass, state);
       this.#renderTalk(texts, talkAllowed(state, this.#snapshot), talking);
       this.#renderDoors(hass, station);
+      this.#renderShortcuts(hass);
     }
 
     /** @param {boolean} answered Tick every second while a call is answered. */
@@ -815,6 +982,31 @@ if (typeof customElements !== "undefined") {
       );
     }
 
+    /** @param {Hass} hass */
+    #renderShortcuts(hass) {
+      const { shortcuts } = /** @type {Parts} */ (this.#parts);
+      shortcuts.replaceChildren(
+        ...shortcutsOf(/** @type {CardConfig} */ (this.#config)).map((shortcut) => {
+          const view = shortcutView(hass, shortcut);
+          const button = document.createElement("button");
+          button.className = view.active ? "active" : "";
+          button.disabled = !view.available;
+          const icon = document.createElement("ha-icon");
+          icon.setAttribute("icon", view.icon);
+          const label = document.createElement("span");
+          label.textContent = view.name;
+          button.append(icon, label);
+          button.addEventListener("click", () => {
+            const { domain, service, data } = shortcutService(shortcut.entity);
+            this.#hass?.callService?.(domain, service, data).catch((/** @type {any} */ err) => {
+              this.#notify(err?.message ?? String(err));
+            });
+          });
+          return button;
+        }),
+      );
+    }
+
     getCardSize() {
       return 9;
     }
@@ -823,9 +1015,65 @@ if (typeof customElements !== "undefined") {
     static getStubConfig(hass) {
       return stubConfig(hass);
     }
+
+    static async getConfigElement() {
+      await loadForms();
+      return document.createElement(`${CARD}-editor`);
+    }
+  }
+
+  /** The editor of the card: the door station, the way to talk, the shortcuts. */
+  class IndoorStationCardEditor extends HTMLElement {
+    /** @type {CardConfig | undefined} */
+    #config;
+    /** @type {Hass | undefined} */
+    #hass;
+    /** @type {any} */
+    #form;
+
+    /** @param {CardConfig} config */
+    setConfig(config) {
+      this.#config = config;
+      this.#render();
+    }
+
+    /** @param {Hass} hass */
+    set hass(hass) {
+      this.#hass = hass;
+      this.#render();
+    }
+
+    #render() {
+      if (!this.#hass || !this.#config) return;
+      if (!this.#form) {
+        this.#form = document.createElement("ha-form");
+        this.#form.computeLabel = (/** @type {{ name: string, label?: string }} */ field) =>
+          field.label ?? field.name;
+        this.#form.addEventListener("value-changed", (/** @type {CustomEvent} */ event) => {
+          event.stopPropagation();
+          const config = configFromEditor(
+            /** @type {CardConfig} */ (this.#config),
+            event.detail.value,
+          );
+          this.dispatchEvent(
+            new CustomEvent("config-changed", {
+              detail: { config },
+              bubbles: true,
+              composed: true,
+            }),
+          );
+        });
+        this.append(this.#form);
+      }
+      this.#form.hass = this.#hass;
+      this.#form.schema = editorSchema(this.#hass);
+      this.#form.data = editorData(this.#config);
+    }
   }
 
   customElements.get(CARD) || customElements.define(CARD, IndoorStationCard);
+  customElements.get(`${CARD}-editor`) ||
+    customElements.define(`${CARD}-editor`, IndoorStationCardEditor);
 
   // Listed in the card picker, with a preview
   const pickable = /** @type {any} */ (window).customCards ?? [];

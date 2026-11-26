@@ -114,7 +114,7 @@ Users' automations and dashboards depend on what the integration exposes.
   `reject` and `open_door_<number>`.
 - Never rename the custom elements (`custom:hikvision-indoor-station-card`, the strategy
   `custom:hikvision-indoor-station`) nor the keys of the card's configuration
-  (`device_id`, `talk_mode`): they are in users' dashboards.
+  (`device_id`, `talk_mode`, `shortcuts`): they are in users' dashboards.
 - Never rename the states of the call sensor (`CALL_STATES`), the event types of the
   doorbell (`EVENT_TYPES`), nor the fields of the websocket commands and of the
   doorbell's events (`call_id`, `caller`, `callee`, `end_reason`).
@@ -133,6 +133,9 @@ Users' automations and dashboards depend on what the integration exposes.
   Keep it true when a change affects a rule.
 - The README is the page users install from, through the Marketplace, and holds the
   sections the quality scale asks for: keep them current.
+- `README.it.md` and `README.pt-BR.md` are the README in Italian and Brazilian
+  Portuguese, the languages of the integration's texts: change the three together,
+  section by section (the language line on top links them).
 - `brand/` holds original art (`icon.png` 256 px, `icon@2x.png` 512 px,
   transparent, `dark_icon*`, `logo*`), checked by `tests/test_brand.py`. Hikvision's
   logo is its trademark: never use it.

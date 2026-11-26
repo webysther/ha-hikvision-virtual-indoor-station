@@ -11,12 +11,18 @@ import {
   callStateName,
   callStateOf,
   checkConfig,
+  configFromEditor,
   doorName,
   doorsOf,
+  editorData,
+  editorSchema,
   elapsed,
   mainActions,
   openDoorMessage,
   screenOf,
+  shortcutService,
+  shortcutView,
+  shortcutsOf,
   stubConfig,
   talkAllowed,
   talkMessage,
@@ -260,5 +266,112 @@ describe("the ringer button", () => {
     assert.equal(muted.active, true);
     assert.equal(muted.icon, "mdi:bell-off");
     assert.equal(actionName(hass, muted), "Campainha");
+  });
+});
+
+describe("the shortcuts", () => {
+  const hass = {
+    ...homeAssistant(["front"]),
+    states: {
+      "light.porch": { state: "on", attributes: { friendly_name: "Porch" } },
+      "scene.welcome": {
+        state: "unknown",
+        attributes: { friendly_name: "Welcome", icon: "mdi:hand-wave" },
+      },
+      "lock.gate": { state: "unavailable", attributes: { friendly_name: "Gate" } },
+    },
+  };
+
+  it("are entities, or entities with their own name and icon", () => {
+    const config = checkConfig({
+      type: CARD,
+      shortcuts: ["light.porch", { entity: "scene.welcome", name: "Hello" }],
+    });
+    assert.deepEqual(shortcutsOf(config), [
+      { entity: "light.porch" },
+      { entity: "scene.welcome", name: "Hello" },
+    ]);
+    assert.deepEqual(shortcutsOf({ type: CARD }), []);
+    assert.throws(() => checkConfig({ type: CARD, shortcuts: "light.porch" }));
+    assert.throws(() => checkConfig({ type: CARD, shortcuts: [{ name: "No entity" }] }));
+  });
+
+  it("press buttons, turn scenes and scripts on, trigger automations, toggle the rest", () => {
+    assert.deepEqual(shortcutService("button.bell"), {
+      domain: "button",
+      service: "press",
+      data: { entity_id: "button.bell" },
+    });
+    assert.equal(shortcutService("scene.welcome").service, "turn_on");
+    assert.equal(shortcutService("script.porch").service, "turn_on");
+    assert.equal(shortcutService("automation.night").service, "trigger");
+    assert.deepEqual(
+      [shortcutService("light.porch").domain, shortcutService("light.porch").service],
+      ["homeassistant", "toggle"],
+    );
+  });
+
+  it("show the name and icon of their entity, and whether it is on", () => {
+    assert.deepEqual(shortcutView(hass, { entity: "light.porch" }), {
+      name: "Porch",
+      icon: "mdi:lightbulb",
+      active: true,
+      available: true,
+    });
+    const scene = shortcutView(hass, { entity: "scene.welcome", name: "Hello" });
+    assert.equal(scene.name, "Hello");
+    assert.equal(scene.icon, "mdi:hand-wave");
+    assert.equal(scene.active, false);
+    assert.equal(shortcutView(hass, { entity: "lock.gate" }).available, false);
+    assert.equal(shortcutView(hass, { entity: "switch.gone" }).available, false);
+    assert.equal(shortcutView(hass, { entity: "switch.gone" }).name, "switch.gone");
+  });
+});
+
+describe("the editor", () => {
+  it("edits the door station, the way to talk and the shortcuts", () => {
+    const config = {
+      type: `custom:${CARD}`,
+      device_id: "device_front",
+      shortcuts: ["light.porch", { entity: "scene.welcome", name: "Hello" }],
+    };
+    assert.deepEqual(editorData(config), {
+      device_id: "device_front",
+      talk_mode: "hold",
+      shortcuts: ["light.porch", "scene.welcome"],
+    });
+    // The names given in YAML stay; the default way to talk is left out
+    assert.deepEqual(
+      configFromEditor(config, {
+        device_id: "device_back",
+        talk_mode: "hold",
+        shortcuts: ["scene.welcome", "switch.fan"],
+      }),
+      {
+        type: `custom:${CARD}`,
+        device_id: "device_back",
+        shortcuts: [{ entity: "scene.welcome", name: "Hello" }, "switch.fan"],
+      },
+    );
+    assert.deepEqual(configFromEditor({ type: CARD }, { talk_mode: "toggle", shortcuts: [] }), {
+      type: CARD,
+      talk_mode: "toggle",
+    });
+  });
+
+  it("offers only the door stations of the integration, in the language of the user", () => {
+    const schema = editorSchema({ ...homeAssistant(["front"]), language: "pt-BR" });
+    assert.deepEqual(
+      schema.map((field) => field.name),
+      ["device_id", "talk_mode", "shortcuts"],
+    );
+    assert.deepEqual(schema[0].selector.device.filter, {
+      integration: "hikvision_virtual_indoor_station",
+    });
+    assert.equal(schema[0].label, "Porteiro");
+    assert.deepEqual(
+      schema[1].selector.select.options.map((option) => option.value),
+      ["hold", "toggle"],
+    );
   });
 });

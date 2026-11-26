@@ -44,10 +44,16 @@ station.
 - The browser rings while the door rings, with a button to mute it (remembered
   by each browser), and asks for a tap when the browser holds the sound. The
   time of an answered call is counted.
+- Shortcuts on the card for other entities (a light, a scene, another door):
+  buttons are pressed, scenes and scripts turned on, automations triggered, the
+  rest toggled. The card has a visual editor: the door station, the way to talk
+  and the shortcuts.
 - The indoor station dashboard (`custom:hikvision-indoor-station`, in **Add
   dashboard**): a view for each door station, with its card and its activity.
 - The README shows how to set the door station up, with pictures of its web page
   (VoIP line, number and call priority).
+- The README in Italian and Brazilian Portuguese, with a section on the
+  dashboard and the card.
 
 ### Changed since 2026.11.0b1
 
