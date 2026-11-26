@@ -22,6 +22,24 @@ hang up or refuse the call, and open the door.
 
 > **Status: in development.** Tested with a DS-KD8003-IME1(B), firmware V3.7.3.
 
+## Why this integration
+
+- **All in one.** The SIP server the door station calls, the card and a dashboard
+  laid out like the screen of an indoor station come with the integration: no
+  add-on, SIP server, MQTT broker or cloud account to set up next to it.
+- **Hybrid, the best of each protocol.** SIP carries the call, as the door
+  station expects from an indoor station; RTP carries your voice to the door, in
+  the packets it plays best; RTSP brings its picture and sound; ISAPI opens the
+  doors and talks through its speaker outside a call.
+- **Platinum from day one.** It follows every rule of the top tier of the
+  [integration quality scale](https://www.home-assistant.io/docs/quality_scale/):
+  async, typed, fully tested, translated, with repairs, reauthentication and
+  diagnostics. The protocol lives in its own library on PyPI,
+  [aiohikvision](https://pypi.org/project/aiohikvision/).
+- **Tested on real hardware.** Every behaviour it relies on was measured on a
+  real door station (a DS-KD8003-IME1(B)), and calls are answered, refused and
+  hung up on it.
+
 ## Features
 
 - **The doorbell rings in Home Assistant.** The door station's VoIP line registers
