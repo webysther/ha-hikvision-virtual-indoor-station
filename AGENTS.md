@@ -84,7 +84,7 @@ Python 3.14, as required by the pinned `pytest-homeassistant-custom-component`
 
 ```bash
 python3.14 -m venv .venv && . .venv/bin/activate
-pip install -r requirements_test.txt   # until its release: pip install -e ../aiohikvision
+pip install -r requirements_test.txt
 ruff format custom_components tests && ruff check custom_components tests
 mypy                                   # strict, configured in pyproject.toml
 pytest --cov --cov-report=term-missing
@@ -92,7 +92,7 @@ npx prettier --check .                 # the YAML
 ```
 
 CI runs them (`tests.yaml`), with hassfest and the checks of the Marketplace
-(`validate.yaml`). It needs aiohikvision on PyPI first. Keep the coverage of
+(`validate.yaml`). Keep the coverage of
 the integration at 100% (the gate is 95%).
 
 ## Compatibility

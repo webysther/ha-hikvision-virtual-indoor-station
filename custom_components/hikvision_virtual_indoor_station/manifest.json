@@ -1,6 +1,7 @@
 {
 	"domain": "hikvision_virtual_indoor_station",
 	"name": "Hikvision Virtual Indoor Station",
+	"categories": ["security_safety.doorbells_intercoms"],
 	"codeowners": ["@webysther"],
 	"config_flow": true,
 	"dependencies": ["network"],
@@ -9,6 +10,6 @@
 	"iot_class": "local_push",
 	"issue_tracker": "https://github.com/webysther/ha-hikvision-virtual-indoor-station/issues",
 	"loggers": ["aiohikvision", "aiosipua"],
-	"requirements": ["aiohikvision==0.1.0"],
+	"requirements": ["aiohikvision==0.1.1"],
 	"version": "0.0.0"
 }
