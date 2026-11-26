@@ -61,13 +61,18 @@ custom_components/hikvision_virtual_indoor_station/
   config_flow.py   address and account; reauthentication; reconfiguration;
                    the phones (subentry extension: device_id, do_not_disturb,
                    open_door)
-  coordinator.py   HealthCoordinator: asks the door station who it is once a
-                   minute; the entities are unavailable while it does not
-                   answer, and the station checks whether the door still calls
-                   (the repair issue door_unheard)
+  coordinator.py   HealthCoordinator: asks the door station what its outputs
+                   drive and how loaded it is once a minute; the entities are
+                   unavailable while it does not answer, and the station checks
+                   whether the door still calls (the repair issue
+                   door_unheard). SettingsCoordinator: its settings and inputs,
+                   every 5 minutes
+  setting.py       SettingEntity: a setting the door station offers (the image
+                   of its camera, volumes, door open time, voice prompt), as
+                   number.py, select.py or switch.py
   entity.py        the device of the door station; event.py (the doorbell:
                    ring, answered, rejected, missed, ended), sensor.py (the
-                   call), binary_sensor.py (SIP registration), button.py (open
+                   call; outputs, inputs, CPU, video sessions), binary_sensor.py (SIP registration), button.py (open
                    each door; answer, hang up, reject), camera.py (RTSP)
   websocket.py     the commands of the cards: subscribe, call, open_door, talk
                    (binary frames routed to the call or to the speaker)
@@ -121,7 +126,9 @@ Users' automations and dashboards depend on what the integration exposes.
 - Never change unique IDs: entries are the serial of the door station
   (`Identity.stable_id`), as its device; entities are `<serial>_<key>`, with the
   keys `call`, `doorbell`, `sip_registered`, `camera`, `answer`, `hang_up`,
-  `reject`, `open_door_<number>` and `output_<number>`.
+  `reject`, `open_door_<number>`, `output_<number>`, `input_<number>`,
+  `cpu_usage`, `video_sessions`, and the settings (`SETTING_KEYS` of
+  `setting.py`; a door's setting ends with `_<door number>`).
 - Never rename the custom elements (`custom:hikvision-indoor-station-card`, the strategy
   `custom:hikvision-indoor-station`) nor the keys of the card's configuration
   (`device_id`, `talk_mode`, `shortcuts`, `show_name`, `show_state`, `show_monitor`,

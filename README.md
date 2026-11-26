@@ -54,10 +54,15 @@ hang up or refuse the call, and open the door.
 - **See and hear the visitor**: the camera of the door station, with its sound,
   played with WebRTC.
 - **Open the doors** wired to the door station, one button each.
+- **Tune the door station** from Home Assistant: the image of its camera, its
+  volumes, how long each door stays open and its voice prompt, within the ranges
+  it reports.
 - **Your phones ring with the door**: a notification with the door's picture,
   through focus modes, with **Answer**, **Open door** and **Reject** on it.
 - **Knows when the door cannot call**: a sensor of the SIP registration, and a
   repair issue that says how to point the door station at Home Assistant.
+- **Shows how loaded it is**: its CPU and how many clients stream its video, and
+  what each input and output is wired for.
 
 ## Use cases
 
@@ -221,9 +226,12 @@ with **Delete** in the three dots of its line, under its door station.
 
 - **Calls are pushed**, as they happen: the door station calls Home Assistant over
   SIP, and the call sensor, the doorbell event and the cards change at once.
-- **Once a minute** the door station is asked what its outputs drive (one small
-  request): its entities are unavailable while it does not answer, and a door
-  whose output no longer drives a lock no longer opens.
+- **Once a minute** the door station is asked what its outputs drive and how
+  loaded it is (three small requests): its entities are unavailable while it does
+  not answer, and a door whose output no longer drives a lock no longer opens.
+- **Every 5 minutes** its settings and inputs are read: a door station streaming
+  its video runs its CPU high, so what rarely changes is read less often. A
+  setting changed from Home Assistant is read back at once.
 - **The registration**: the door station registers every 10 minutes at most, and
   sends a keepalive every 20 seconds while it does.
 - **The camera** streams on demand; its picture is taken when a dashboard asks.
@@ -268,6 +276,10 @@ with **Delete** in the three dots of its line, under its door station.
 - **The video takes long to start.** Turn on **Preload camera stream** in the
   settings of the door station's camera: its stream is then always ready (it
   keeps one stream of the door station open).
+- **The video lags or freezes.** Look at **Video sessions** and **CPU usage**:
+  every client that streams the door station (Home Assistant, a recorder, the
+  Hik-Connect app) loads it, and with its CPU near 90% the video slows down.
+  Stream it from fewer places.
 
 Enable debug logs (**Settings → Devices & services → Hikvision Virtual Indoor
 Station → Enable debug logging**) and download the diagnostics before opening an
@@ -290,7 +302,17 @@ please report yours.
 | SIP registration (diagnostic) | On while the door station can call Home Assistant |
 | Open door (button) | One per door, numbered when there are several; unavailable while its output drives no lock |
 | Output (diagnostic) | What a changeable output drives: `electric_lock`, `doorbell`, `disabled` |
+| Input (diagnostic) | What a changeable input is wired for: `door_contact`, `exit_button`, `disabled` |
+| CPU usage, Video sessions (diagnostic) | How loaded the door station is: its CPU, and how many clients stream its video |
 | Answer, Hang up, Reject (buttons) | Act on the current call |
+| Microphone volume, Speaker volume, Call volume (configuration) | The volumes of the door station |
+| Door open time (configuration) | How long a door stays open, in seconds; one per door |
+| Voice prompt when a door opens, Door voice prompt (configuration) | Whether the door station speaks when a door opens, and what: `long`, `short`, `doorisopen` |
+| Day/night mode, Brightness, Contrast, Saturation, Sharpness, WDR (configuration) | The image of the camera |
+
+The settings appear when the door station offers them, with its ranges and
+choices. Day/night sensitivity, WDR level, Backlight compensation, its area and
+Power line frequency are there too, disabled by default.
 
 ## Automation examples
 

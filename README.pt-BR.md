@@ -55,10 +55,15 @@ atende, fala, desliga ou recusa a chamada, e abre a porta.
   junto com a chamada; fora dela, pelo alto-falante do porteiro.
 - **Veja e ouça o visitante**: a câmera do porteiro, com o som, tocada por WebRTC.
 - **Abra as portas** ligadas ao porteiro, um botão para cada uma.
+- **Ajuste o porteiro** pelo Home Assistant: a imagem da câmera, os volumes, o
+  tempo que cada porta fica aberta e o aviso de voz, dentro das faixas que ele
+  informa.
 - **Os seus celulares tocam junto com a porta**: uma notificação com a foto da
   porta, mesmo em modo foco, com **Atender**, **Abrir porta** e **Recusar**.
 - **Sabe quando a porta não consegue chamar**: um sensor do registro SIP e um
   reparo que explica como apontar o porteiro para o Home Assistant.
+- **Mostra o quanto ele está carregado**: a CPU e quantos clientes transmitem o
+  vídeo dele, e para que serve cada entrada e cada saída.
 
 ## Casos de uso
 
@@ -226,10 +231,14 @@ porteiro.
 - **As chamadas chegam na hora**: o porteiro liga para o Home Assistant por SIP,
   e o sensor de chamada, o evento da campainha e os cards mudam no mesmo
   instante.
-- **Uma vez por minuto** o porteiro é perguntado o que as saídas dele acionam
-  (uma requisição pequena): as entidades dele ficam indisponíveis enquanto ele
-  não responde, e uma porta cuja saída deixou de acionar uma fechadura deixa de
-  abrir.
+- **Uma vez por minuto** o porteiro é perguntado o que as saídas dele acionam e
+  o quanto ele está carregado (três requisições pequenas): as entidades dele
+  ficam indisponíveis enquanto ele não responde, e uma porta cuja saída deixou de
+  acionar uma fechadura deixa de abrir.
+- **A cada 5 minutos** as configurações e as entradas dele são lidas: um porteiro
+  transmitindo o vídeo fica com a CPU alta, então o que muda pouco é lido com
+  menos frequência. Uma configuração alterada pelo Home Assistant é relida na
+  hora.
 - **O registro**: o porteiro se registra a cada 10 minutos no máximo, e manda um
   keepalive a cada 20 segundos enquanto está registrado.
 - **A câmera** transmite sob demanda; a foto dela é tirada quando um dashboard
@@ -275,6 +284,10 @@ porteiro.
 - **O vídeo demora a começar.** Ligue **Pré-carregar o fluxo da câmera** nas
   configurações da câmera do porteiro: o fluxo dela fica sempre pronto (ele
   mantém um fluxo do porteiro aberto).
+- **O vídeo atrasa ou trava.** Veja **Video sessions** e **CPU usage**: cada
+  cliente que transmite o porteiro (o Home Assistant, um gravador, o app
+  Hik-Connect) pesa nele, e com a CPU perto de 90% o vídeo fica lento. Transmita
+  de menos lugares.
 
 Ative os logs de depuração (**Configurações → Dispositivos e serviços →
 Hikvision Virtual Indoor Station → Habilitar registro de depuração**) e baixe os
@@ -297,7 +310,17 @@ conte como foi com o seu.
 | SIP registration (diagnóstico) | Ligado enquanto o porteiro consegue chamar o Home Assistant |
 | Open door (botão) | Um por porta, numerado quando há mais de uma; indisponível enquanto a saída dela não aciona uma fechadura |
 | Output (diagnóstico) | O que uma saída configurável aciona: `electric_lock`, `doorbell`, `disabled` |
+| Input (diagnóstico) | Para que serve uma entrada configurável: `door_contact`, `exit_button`, `disabled` |
+| CPU usage, Video sessions (diagnóstico) | O quanto o porteiro está carregado: a CPU, e quantos clientes transmitem o vídeo dele |
 | Answer, Hang up, Reject (botões) | Agem na chamada atual |
+| Microphone volume, Speaker volume, Call volume (configuração) | Os volumes do porteiro |
+| Door open time (configuração) | Quanto tempo uma porta fica aberta, em segundos; uma por porta |
+| Voice prompt when a door opens, Door voice prompt (configuração) | Se o porteiro fala quando uma porta abre, e o quê: `long`, `short`, `doorisopen` |
+| Day/night mode, Brightness, Contrast, Saturation, Sharpness, WDR (configuração) | A imagem da câmera |
+
+As configurações aparecem quando o porteiro as oferece, com as faixas e as
+opções dele. Também há Day/night sensitivity, WDR level, Backlight compensation,
+a área dela e Power line frequency, desativadas por padrão.
 
 Os nomes das entidades seguem o idioma do Home Assistant.
 

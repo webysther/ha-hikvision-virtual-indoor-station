@@ -6,9 +6,11 @@ rules:
   appropriate-polling:
     status: done
     comment: >-
-      The calls are pushed over SIP. The door station is only asked what its outputs
-      drive once a minute (one small ISAPI request), to know whether it answers and
-      whether a door gained or lost its lock.
+      The calls are pushed over SIP. Once a minute the door station is asked what its
+      outputs drive and how loaded it is (three small ISAPI requests), to know whether
+      it answers and whether a door gained or lost its lock. Its settings and inputs,
+      which rarely change, are read every 5 minutes: a door station streaming its
+      video runs its CPU high.
   brands:
     status: done
     comment: >-
@@ -17,7 +19,8 @@ rules:
   common-modules:
     status: done
     comment: >-
-      entity.py (the device and the availability), coordinator.py (the health check),
+      entity.py (the device and the availability), coordinator.py (the health check
+      and the settings), setting.py (the entities of the settings),
       station.py (the calls and the commands of a door station), sip.py (the SIP
       server shared by the entries).
   config-flow-test-coverage: done
@@ -54,7 +57,8 @@ rules:
     status: done
     comment: >-
       The buttons raise translated errors: no call ringing or in progress, a call
-      answered elsewhere, a door that did not open.
+      answered elsewhere, a door that did not open, a setting the door station did
+      not take.
   config-entry-unloading: done
   docs-configuration-parameters:
     status: done
@@ -99,11 +103,11 @@ rules:
   entity-category: done
   entity-device-class: done
   entity-disabled-by-default:
-    status: exempt
+    status: done
     comment: >-
-      Every entity is a control or a state of the indoor station; the diagnostic
-      entities tell whether the door station can call at all (the SIP registration)
-      and why a door does not open (what its output drives).
+      The settings of the camera image that are rarely changed (day/night sensitivity,
+      WDR level, backlight compensation and its area, power line frequency) are
+      disabled by default.
   entity-translations: done
   exception-translations: done
   icon-translations: done

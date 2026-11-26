@@ -10,7 +10,7 @@ This file is an overview for language models. The README is the user guide; AGEN
 - Installed from the Home Assistant Marketplace as a custom repository: `https://github.com/webysther/ha-hikvision-virtual-indoor-station`.
 - One config entry per door station, added with its address and an account of its web page. The door station's VoIP line must then point at Home Assistant (UDP port 5060), with its call button set to call the telephone gateway first.
 - The device side lives in the library aiohikvision (PyPI, Apache-2.0, `https://github.com/webysther/aio-hikvision`), pinned to an exact version.
-- Hybrid design: the call and the microphone during a call go over SIP (G.711, 40 ms packets, the size the door station plays best); the door's picture and sound come over RTSP (the camera entity, played with WebRTC); doors, the speaker outside a call and the health check go over ISAPI.
+- Hybrid design: the call and the microphone during a call go over SIP (G.711, 40 ms packets, the size the door station plays best); the door's picture and sound come over RTSP (the camera entity, played with WebRTC); doors, the settings, the speaker outside a call and the health check go over ISAPI.
 - Tested on a DS-KD8003-IME1(B) with firmware V3.7.3. Other DS-KD and DS-KV door stations with a VoIP line are expected to work.
 - Texts in English, Italian and Brazilian Portuguese. Self-assessed at the Platinum tier of the integration quality scale (`quality_scale.yaml`).
 
@@ -22,6 +22,9 @@ This file is an overview for language models. The README is the user guide; AGEN
 - SIP registration (diagnostic binary sensor): on while the door station can call Home Assistant.
 - Buttons: one Open door per door (unavailable when its output drives no lock), Answer, Hang up, Reject.
 - Output (diagnostic sensor): what a changeable output drives (`electric_lock`, `doorbell`, `disabled`).
+- Input (diagnostic sensor): what a changeable input is wired for (`door_contact`, `exit_button`, `disabled`).
+- CPU usage and Video sessions (diagnostic sensors): how loaded the door station is.
+- Settings (configuration numbers, selects and switches), as the door station offers them, read every 5 minutes: microphone, speaker and call volume; door open time (one per door); voice prompt when a door opens, and which; the camera image (day/night mode, brightness, contrast, saturation, sharpness, WDR; day/night sensitivity, WDR level, backlight compensation and its area, power line frequency disabled by default).
 
 ## Card, dashboard and panel
 

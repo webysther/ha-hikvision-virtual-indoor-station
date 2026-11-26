@@ -55,11 +55,16 @@ parli, riagganci o rifiuti la chiamata, e apri la porta.
 - **Vedi e senti il visitatore**: la telecamera del citofono, con il suo suono,
   riprodotta con WebRTC.
 - **Apri le porte** collegate al citofono, un pulsante per ciascuna.
+- **Regola il citofono** da Home Assistant: l'immagine della sua telecamera, i
+  suoi volumi, quanto resta aperta ogni porta e il suo messaggio vocale, entro
+  gli intervalli che indica.
 - **I tuoi telefoni suonano con la porta**: una notifica con la foto della
   porta, anche con le modalità full immersion, con **Rispondi**, **Apri porta** e
   **Rifiuta**.
 - **Sa quando la porta non può chiamare**: un sensore della registrazione SIP, e
   una riparazione che spiega come puntare il citofono su Home Assistant.
+- **Mostra quanto è carico**: la sua CPU e quanti client trasmettono il suo
+  video, e a cosa è collegato ogni ingresso e ogni uscita.
 
 ## Casi d'uso
 
@@ -230,9 +235,13 @@ disinstalla l'integrazione dal Marketplace. Una sola app si rimuove con
   il sensore della chiamata, l'evento del campanello e le schede cambiano
   all'istante.
 - **Una volta al minuto** al citofono viene chiesto cosa comandano le sue
-  uscite (una piccola richiesta): le sue entità non sono disponibili finché non
-  risponde, e una porta la cui uscita non comanda più una serratura non si apre
-  più.
+  uscite e quanto è carico (tre piccole richieste): le sue entità non sono
+  disponibili finché non risponde, e una porta la cui uscita non comanda più una
+  serratura non si apre più.
+- **Ogni 5 minuti** vengono letti le sue impostazioni e i suoi ingressi: un
+  citofono che trasmette il suo video ha la CPU alta, quindi ciò che cambia di
+  rado viene letto meno spesso. Un'impostazione cambiata da Home Assistant viene
+  riletta subito.
 - **La registrazione**: il citofono si registra al massimo ogni 10 minuti, e
   manda un keepalive ogni 20 secondi mentre è registrato.
 - **La telecamera** trasmette su richiesta; la sua foto viene scattata quando
@@ -280,6 +289,10 @@ disinstalla l'integrazione dal Marketplace. Una sola app si rimuove con
 - **Il video tarda a partire.** Attiva **Precaricare il flusso della
   telecamera** nelle impostazioni della telecamera del citofono: il suo flusso è
   allora sempre pronto (tiene aperto un flusso del citofono).
+- **Il video rallenta o si blocca.** Guarda **Video sessions** e **CPU usage**:
+  ogni client che trasmette il citofono (Home Assistant, un registratore, l'app
+  Hik-Connect) lo carica, e con la CPU vicina al 90% il video rallenta.
+  Trasmettilo da meno posti.
 
 Attiva i log di debug (**Impostazioni → Dispositivi e servizi → Hikvision Virtual
 Indoor Station → Abilita la registrazione di debug**) e scarica la diagnostica
@@ -302,7 +315,18 @@ funzionare; segnala il tuo.
 | SIP registration (diagnostica) | Acceso finché il citofono può chiamare Home Assistant |
 | Open door (pulsante) | Uno per porta, numerati quando sono più di una; non disponibile finché la sua uscita non comanda una serratura |
 | Output (diagnostica) | Cosa comanda un'uscita configurabile: `electric_lock`, `doorbell`, `disabled` |
+| Input (diagnostica) | A cosa è collegato un ingresso configurabile: `door_contact`, `exit_button`, `disabled` |
+| CPU usage, Video sessions (diagnostica) | Quanto è carico il citofono: la sua CPU, e quanti client trasmettono il suo video |
 | Answer, Hang up, Reject (pulsanti) | Agiscono sulla chiamata in corso |
+| Microphone volume, Speaker volume, Call volume (configurazione) | I volumi del citofono |
+| Door open time (configurazione) | Quanto resta aperta una porta, in secondi; una per porta |
+| Voice prompt when a door opens, Door voice prompt (configurazione) | Se il citofono parla quando si apre una porta, e cosa dice: `long`, `short`, `doorisopen` |
+| Day/night mode, Brightness, Contrast, Saturation, Sharpness, WDR (configurazione) | L'immagine della telecamera |
+
+Le impostazioni compaiono quando il citofono le offre, con i suoi intervalli e
+le sue scelte. Ci sono anche Day/night sensitivity, WDR level, Backlight
+compensation, la sua area e Power line frequency, disattivate per impostazione
+predefinita.
 
 I nomi delle entità seguono la lingua di Home Assistant.
 

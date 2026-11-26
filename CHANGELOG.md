@@ -93,20 +93,30 @@ station.
 - A tutorial (`docs/tutorial.md`), from a door station to a working indoor
   station with its dashboard and phones, and an overview for language models
   (`llms.txt`).
-
 - A door opens only when its output drives a lock: the door stations list every
   door they can open remotely, even one whose relay rings a doorbell or drives
   nothing (Access Control → I/O Settings). Its button is unavailable, the card's
   key is off, and an **Output** diagnostic sensor tells what each changeable
   output drives (electric lock, doorbell, disabled). The outputs are read once a
   minute, as the door station's web page can change them.
+- The settings of the door station, as configuration entities, as it offers them
+  and within its ranges: its microphone, speaker and call volumes; how long each
+  door stays open; whether and what it says when a door opens; the image of its
+  camera (day/night mode, brightness, contrast, saturation, sharpness, WDR; the
+  day/night sensitivity, WDR level, backlight compensation and power line
+  frequency are there too, disabled by default). They are read every 5 minutes,
+  and a change is read back from the door station.
+- An **Input** diagnostic sensor for each changeable input (door contact, exit
+  button, disabled), and **CPU usage** and **Video sessions**: how loaded the
+  door station is, as every client streaming its video loads it.
 
 ### Changed since 2026.11.0b1
 
-- Requires aiohikvision 0.1.2: door stations reached over HTTPS keep the TLS
-  settings of Home Assistant's session, and what the outputs drive is read.
-- The door station is asked what its outputs drive once a minute, in place of who
-  it is: still one small request.
+- Requires aiohikvision 0.1.6: door stations reached over HTTPS keep the TLS
+  settings of Home Assistant's session; what the outputs and inputs are wired
+  for, the settings and the load are read.
+- The door station is asked what its outputs drive and how loaded it is once a
+  minute, in place of who it is.
 - The integration is in the **Doorbells and intercoms** category.
 - The code is now under the MIT license.
 - **Visit** on the device page opens the web page of the door station over
