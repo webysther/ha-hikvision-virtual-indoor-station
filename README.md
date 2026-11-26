@@ -1,4 +1,20 @@
-# Hikvision Virtual Indoor Station
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/webysther/ha-hikvision-virtual-indoor-station/main/custom_components/hikvision_virtual_indoor_station/brand/dark_icon@2x.png">
+    <img src="https://raw.githubusercontent.com/webysther/ha-hikvision-virtual-indoor-station/main/custom_components/hikvision_virtual_indoor_station/brand/icon@2x.png" alt="" width="128">
+  </picture>
+</p>
+
+<h1 align="center">Hikvision Virtual Indoor Station</h1>
+
+<p align="center">Home Assistant as the indoor station of your Hikvision video door station: answer, talk and open the door from dashboards and phones</p>
+
+<p align="center">
+  <a href="https://github.com/webysther/ha-hikvision-virtual-indoor-station/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/webysther/ha-hikvision-virtual-indoor-station?include_prereleases&label=release&color=41BDF5"></a>
+  <a href="https://www.home-assistant.io/integrations/marketplace/"><img alt="Marketplace custom repository" src="https://img.shields.io/badge/Marketplace-custom-41BDF5?logo=homeassistant&logoColor=white"></a>
+  <a href="https://github.com/webysther/ha-hikvision-virtual-indoor-station/actions/workflows/tests.yaml"><img alt="Tests" src="https://github.com/webysther/ha-hikvision-virtual-indoor-station/actions/workflows/tests.yaml/badge.svg"></a>
+  <a href="https://github.com/webysther/ha-hikvision-virtual-indoor-station/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/webysther/ha-hikvision-virtual-indoor-station?color=41BDF5"></a>
+</p>
 
 Make Home Assistant the indoor station of your Hikvision video door station. Its
 button rings in Home Assistant, on your dashboards and phones: you answer, talk,
@@ -177,7 +193,7 @@ in [aiohikvision](https://github.com/webysther/aio-hikvision).
 ## License
 
 The code is under the
-[Apache License 2.0](https://github.com/webysther/ha-hikvision-virtual-indoor-station/blob/main/LICENSE).
+[MIT License](https://github.com/webysther/ha-hikvision-virtual-indoor-station/blob/main/LICENSE).
 
 Hikvision and Home Assistant are trademarks of their owners, named here only to
 identify them, without implying their endorsement; this project is not affiliated
