@@ -30,5 +30,22 @@ station.
   does not call Home Assistant.
 - Icons for every entity and state, and original brand art.
 - Diagnostics without addresses, names or account.
+- The indoor station card (`custom:hikvision-indoor-station-card`), in the card
+  picker: the door's camera, live while the door rings, during a call or while
+  monitoring, and its picture otherwise; the state of the call; Answer and
+  Reject while it rings, Hang up once answered, Monitor while idle (the door's
+  sound plays once answered or monitored); a key for each door. A warning shows
+  when the door station is not registered.
+- The indoor station dashboard (`custom:hikvision-indoor-station`, in **Add
+  dashboard**): a view for each door station, with its card and its activity.
+- The README shows how to set the door station up, with pictures of its web page
+  (VoIP line, number and call priority).
+
+### Changed since 2026.11.0b1
+
+- Requires aiohikvision 0.1.1: door stations reached over HTTPS keep the TLS
+  settings of Home Assistant's session.
+- The integration is in the **Doorbells and intercoms** category.
+- The code is now under the MIT license.
 
 [Unreleased]: https://github.com/webysther/ha-hikvision-virtual-indoor-station/commits/main
