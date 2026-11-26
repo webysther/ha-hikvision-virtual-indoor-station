@@ -147,7 +147,8 @@ install.
   - **Push to talk**: hold it (or the space bar on it). Your voice goes with the
     call, or through the door's speaker while idle, and the door's sound is
     muted while you talk;
-  - a key for each door, and your shortcuts.
+  - on the right of the same row, a key for each door that opens, and your
+    shortcuts.
 
 ```yaml
 type: custom:hikvision-indoor-station-card
@@ -162,6 +163,8 @@ shortcuts:
   - entity: scene.welcome
     name: Welcome
     icon: mdi:hand-wave
+# false: the keys show their icons only
+show_name: true
 ```
 
 Browsers hold the sound of a page until it is tapped: the card asks for a tap

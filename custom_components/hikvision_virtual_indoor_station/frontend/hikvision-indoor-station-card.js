@@ -61,7 +61,7 @@ export { CARD };
  * @typedef {{ entity: string, name?: string, icon?: string }} Shortcut A button of the card
  *   for another entity: a light, a scene, another door.
  * @typedef {{ type: string, device_id?: string, talk_mode?: TalkMode,
- *   shortcuts?: Array<string | Shortcut> }} CardConfig
+ *   shortcuts?: Array<string | Shortcut>, show_name?: boolean }} CardConfig
  * @typedef {{ media: HTMLElement, name: HTMLElement, state: HTMLElement, warning: HTMLElement,
  *   keys: HTMLElement, extra: HTMLElement, buttons: Map<KeyName, HTMLButtonElement> }} Parts
  *   The parts of the card: the screen, the keys under it, the doors and shortcuts.
@@ -304,6 +304,18 @@ export function doorsOf(snapshot) {
 }
 
 /**
+ * Return the doors that have a key on the card: those that open. A door whose output rings
+ * a doorbell, or drives nothing, has no key.
+ *
+ * @param {Snapshot | null} snapshot
+ * @returns {number[]}
+ */
+export function doorKeysOf(snapshot) {
+  const locks = locksOf(snapshot);
+  return doorsOf(snapshot).filter((door) => locks.includes(door));
+}
+
+/**
  * Return the doors that open: those whose output drives a lock (not a doorbell, nor
  * nothing), as the door station's I/O settings say.
  *
@@ -351,6 +363,9 @@ export function checkConfig(config) {
   }
   if (config.talk_mode !== undefined && !["hold", "toggle"].includes(config.talk_mode)) {
     throw new Error("talk_mode must be hold or toggle");
+  }
+  if (config.show_name !== undefined && typeof config.show_name !== "boolean") {
+    throw new Error("show_name must be true or false");
   }
   if (config.shortcuts !== undefined) {
     const valid = (/** @type {any} */ item) =>
@@ -440,6 +455,7 @@ export function editorData(config) {
     device_id: config.device_id,
     talk_mode: config.talk_mode ?? "hold",
     shortcuts: shortcutsOf(config).map((shortcut) => shortcut.entity),
+    show_name: config.show_name ?? true,
   };
 }
 
@@ -448,7 +464,8 @@ export function editorData(config) {
  * given in YAML, and the defaults are left out.
  *
  * @param {CardConfig} config
- * @param {{ device_id?: string, talk_mode?: TalkMode, shortcuts?: string[] }} value
+ * @param {{ device_id?: string, talk_mode?: TalkMode, shortcuts?: string[],
+ *   show_name?: boolean }} value
  * @returns {CardConfig}
  */
 export function configFromEditor(config, value) {
@@ -462,11 +479,13 @@ export function configFromEditor(config, value) {
     return shortcut && (shortcut.name || shortcut.icon) ? shortcut : entity;
   });
   if (shortcuts.length) result.shortcuts = shortcuts;
+  if (value.show_name === false) result.show_name = false;
   return result;
 }
 
 /**
- * Return the form of the editor: the door station, the way to talk, the shortcuts.
+ * Return the form of the editor: the door station, the way to talk, the shortcuts, and
+ * whether the keys show their names.
  *
  * @param {Hass} hass
  */
@@ -492,6 +511,7 @@ export function editorSchema(hass) {
       },
     },
     { name: "shortcuts", label: texts.editor_shortcuts, selector: { entity: { multiple: true } } },
+    { name: "show_name", label: texts.editor_show_name, selector: { boolean: {} } },
   ];
 }
 
@@ -576,8 +596,9 @@ export class Ringer {
 
 if (typeof customElements !== "undefined") {
   // A standard card of the theme, laid out like an indoor station: the door's camera on
-  // top, its name and the state of the call over it, and a row of keys under it, green to
-  // answer and red to hang up. The rest takes the colors of the theme.
+  // top, its name and the state of the call over it, and one row of keys under it, green
+  // to answer and red to hang up, with the doors and the shortcuts on its right. The rest
+  // takes the colors of the theme.
   const STYLE = `
     ha-card { overflow: hidden; }
     .screen { position: relative; aspect-ratio: 16 / 9; background: #000; }
@@ -594,12 +615,12 @@ if (typeof customElements !== "undefined") {
     .chip.live { background: var(--error-color, #db4437); }
     .warning { position: absolute; inset: auto 0 0 0; padding: 6px 12px; font-size: 13px;
       background: rgba(0, 0, 0, 0.7); color: var(--warning-color, #ffa600); }
-    .keys { display: flex; justify-content: space-around; align-items: flex-start; gap: 2px;
-      padding: 8px 8px 4px; }
-    .keys.extra { flex-wrap: wrap; justify-content: center; padding-bottom: 8px;
-      border-top: 1px solid var(--divider-color); }
-    .keys:empty { display: none; }
-    .key { flex: 1 1 0; min-width: 56px; max-width: 96px; display: flex; flex-direction: column;
+    .keys { display: flex; flex-wrap: wrap; justify-content: space-around; align-items: stretch;
+      gap: 2px; padding: 8px; }
+    .extra { display: contents; }
+    .divider { flex: none; width: 1px; margin: 6px 2px; background: var(--divider-color); }
+    .no-names .caption { display: none; }
+    .key { flex: 1 1 0; min-width: 48px; max-width: 96px; display: flex; flex-direction: column;
       align-items: center; gap: 4px; padding: 6px 2px; border: none; border-radius: 12px;
       background: none; color: var(--primary-text-color); font: inherit; font-size: 11px;
       cursor: pointer; -webkit-tap-highlight-color: transparent; }
@@ -913,12 +934,12 @@ if (typeof customElements !== "undefined") {
         state: part("div", "chip"),
         warning: part("div", "warning"),
         keys: part("div", "keys"),
-        extra: part("div", "keys extra"),
+        extra: part("div", "extra"),
         buttons: new Map(),
       };
       overlay.append(parts.name, parts.state);
       screen.append(parts.media, overlay, parts.warning);
-      card.append(screen, parts.keys, parts.extra);
+      card.append(screen, parts.keys);
       root.replaceChildren(style, card);
       for (const name of /** @type {KeyName[]} */ ([
         "answer",
@@ -938,6 +959,8 @@ if (typeof customElements !== "undefined") {
         parts.buttons.set(name, button);
         parts.keys.append(button);
       }
+      // The doors and the shortcuts, on the right of the same row
+      parts.keys.append(parts.extra);
       return parts;
     }
 
@@ -995,6 +1018,7 @@ if (typeof customElements !== "undefined") {
       // A talk the state no longer allows stops; one the door ends ends by itself
       if (talking && !talkable) this.#stopTalk();
       parts.keys.hidden = false;
+      parts.keys.classList.toggle("no-names", this.#config.show_name === false);
       parts.state.hidden = false;
       parts.name.textContent = station.name;
       const label = screenLabel(hass, state, {
@@ -1101,20 +1125,24 @@ if (typeof customElements !== "undefined") {
       });
     }
 
-    /** The doors and the shortcuts, under the keys. @param {Hass} hass @param {Station} station */
+    /**
+     * The doors that open and the shortcuts, on the right of the keys.
+     *
+     * @param {Hass} hass
+     * @param {Station} station
+     */
     #renderExtra(hass, station) {
       const { extra } = /** @type {Parts} */ (this.#parts);
-      const numbers = doorsOf(this.#snapshot);
-      const locks = locksOf(this.#snapshot);
+      // Named as the integration names its buttons, numbered among all the doors
+      const count = doorsOf(this.#snapshot).length;
       const entry = station.entry_id;
-      const doors = numbers.map((door) => {
+      const doors = doorKeysOf(this.#snapshot).map((door) => {
         const button = keyElement("key");
         showKey(button, {
           icon: "mdi:key-variant",
-          name: doorName(hass, door, numbers.length),
+          name: doorName(hass, door, count),
           className: "key",
-          // A door whose output rings a doorbell, or drives nothing, does not open
-          enabled: Boolean(entry) && this.#busy === null && locks.includes(door),
+          enabled: Boolean(entry) && this.#busy === null,
         });
         button.addEventListener(
           "click",
@@ -1139,7 +1167,9 @@ if (typeof customElements !== "undefined") {
         });
         return button;
       });
-      extra.replaceChildren(...doors, ...shortcuts);
+      const keys = [...doors, ...shortcuts];
+      const divider = Object.assign(document.createElement("span"), { className: "divider" });
+      extra.replaceChildren(...(keys.length ? [divider, ...keys] : []));
     }
 
     /**

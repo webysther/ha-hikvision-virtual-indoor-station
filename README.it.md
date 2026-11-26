@@ -152,7 +152,8 @@ installare.
   - **Premi per parlare**: tienilo premuto (o la barra spaziatrice con il
     pulsante selezionato). La tua voce va con la chiamata, o dall'altoparlante
     della porta a riposo, e il suono della porta si spegne mentre parli;
-  - una chiave per ogni porta, e le tue scorciatoie.
+  - a destra, sulla stessa riga, una chiave per ogni porta che si apre, e le tue
+    scorciatoie.
 
 ```yaml
 type: custom:hikvision-indoor-station-card
@@ -167,6 +168,8 @@ shortcuts:
   - entity: scene.welcome
     name: Benvenuto
     icon: mdi:hand-wave
+# false: i tasti mostrano solo le icone
+show_name: true
 ```
 
 I browser trattengono il suono di una pagina finché non la si tocca: la scheda

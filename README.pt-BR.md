@@ -148,7 +148,8 @@ instalar.
   - **Aperte para falar**: segure o botão (ou a barra de espaço com ele em
     foco). A sua voz vai com a chamada, ou pelo alto-falante da porta quando ela
     está livre, e o som da porta fica mudo enquanto você fala;
-  - uma chave para cada porta, e os seus atalhos.
+  - à direita, na mesma linha, uma chave para cada porta que abre, e os seus
+    atalhos.
 
 ```yaml
 type: custom:hikvision-indoor-station-card
@@ -163,6 +164,8 @@ shortcuts:
   - entity: scene.welcome
     name: Bem-vindo
     icon: mdi:hand-wave
+# false: as teclas mostram só os ícones
+show_name: true
 ```
 
 Os navegadores seguram o som de uma página até alguém tocar nela: o card pede um

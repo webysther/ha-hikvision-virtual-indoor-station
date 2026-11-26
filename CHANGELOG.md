@@ -41,8 +41,10 @@ station.
   Answer (green), Hang up (red, refusing a call that rings), Monitor, Push to
   talk and the ringer. The camera plays live while the door rings, during a call
   or while monitoring, and shows its picture otherwise; the door's sound plays
-  once answered or monitored. A key for each door and the shortcuts sit under
-  them. A warning shows when the door station is not registered.
+  once answered or monitored. A key for each door that opens and the shortcuts
+  sit on the right of the same row (a door whose output does not drive a lock
+  has none), and `show_name: false` leaves the keys with their icons only. A
+  warning shows when the door station is not registered.
 - Push-to-talk on the card: hold the button (or the space bar on it), or press
   it once to talk and once to stop (`talk_mode: toggle`). Your voice goes with
   an answered call, or through the door's speaker while idle; the door's sound
@@ -53,8 +55,8 @@ station.
   time of an answered call is counted.
 - Shortcuts on the card for other entities (a light, a scene, another door):
   buttons are pressed, scenes and scripts turned on, automations triggered, the
-  rest toggled. The card has a visual editor: the door station, the way to talk
-  and the shortcuts.
+  rest toggled. The card has a visual editor: the door station, the way to talk,
+  the shortcuts and whether the keys show their names.
 - Phones with the Home Assistant app are added to a door station as its
   extensions (**Add phone** on its entry), each with its own do not disturb and
   whether it may open the door. Adding or changing one does not interrupt a

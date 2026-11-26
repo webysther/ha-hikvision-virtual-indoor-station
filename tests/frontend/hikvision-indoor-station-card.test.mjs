@@ -13,6 +13,7 @@ import {
   callStateOf,
   checkConfig,
   configFromEditor,
+  doorKeysOf,
   doorName,
   deviceKeys,
   doorsOf,
@@ -90,6 +91,11 @@ describe("configuration", () => {
     assert.deepEqual(checkConfig({ type: CARD }), { type: CARD });
     assert.throws(() => checkConfig(null));
     assert.throws(() => checkConfig({ type: CARD, device_id: 1 }));
+    assert.deepEqual(checkConfig({ type: CARD, show_name: false }), {
+      type: CARD,
+      show_name: false,
+    });
+    assert.throws(() => checkConfig({ type: CARD, show_name: "no" }));
   });
 
   it("of a new card is the first door station", () => {
@@ -132,6 +138,10 @@ describe("the doors", () => {
     // A door station that does not say: every door is tried
     assert.deepEqual(locksOf({ ...snapshot(null), doors: [1, 2] }), [1, 2]);
     assert.deepEqual(locksOf(null), []);
+    // A door that does not open has no key at all
+    assert.deepEqual(doorKeysOf({ ...snapshot(null), doors: [1, 2], locks: [1] }), [1]);
+    assert.deepEqual(doorKeysOf({ ...snapshot(null), doors: [1, 2] }), [1, 2]);
+    assert.deepEqual(doorKeysOf(null), []);
   });
 
   it("open with the number of the door", () => {
@@ -316,6 +326,7 @@ describe("the editor", () => {
       device_id: "device_front",
       talk_mode: "hold",
       shortcuts: ["light.porch", "scene.welcome"],
+      show_name: true,
     });
     // The names given in YAML stay; the default way to talk is left out
     assert.deepEqual(
@@ -334,14 +345,23 @@ describe("the editor", () => {
       type: CARD,
       talk_mode: "toggle",
     });
+    // The names under the keys are shown unless turned off, as in Home Assistant's cards
+    assert.deepEqual(configFromEditor({ type: CARD }, { show_name: false }), {
+      type: CARD,
+      show_name: false,
+    });
+    assert.deepEqual(configFromEditor({ type: CARD }, { show_name: true }), { type: CARD });
+    assert.equal(editorData({ type: CARD, show_name: false }).show_name, false);
   });
 
   it("offers only the door stations of the integration, in the language of the user", () => {
     const schema = editorSchema({ ...homeAssistant(["front"]), language: "pt-BR" });
     assert.deepEqual(
       schema.map((field) => field.name),
-      ["device_id", "talk_mode", "shortcuts"],
+      ["device_id", "talk_mode", "shortcuts", "show_name"],
     );
+    assert.equal(schema[3].label, "Mostrar nome");
+    assert.deepEqual(schema[3].selector, { boolean: {} });
     assert.deepEqual(schema[0].selector.device.filter, {
       integration: "hikvision_virtual_indoor_station",
     });
