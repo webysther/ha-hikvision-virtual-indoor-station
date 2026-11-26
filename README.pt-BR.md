@@ -126,6 +126,9 @@ Depois aponte o porteiro para o Home Assistant, na página web dele:
 O sensor **SIP registration** liga quando o porteiro se registra. O endereço, a
 conta e a senha podem ser trocados depois em **Reconfigurar**.
 
+Passo a passo, do porteiro ao dashboard e aos celulares:
+[o tutorial](https://github.com/webysther/ha-hikvision-virtual-indoor-station/blob/main/docs/tutorial.md) (em inglês).
+
 ## Dashboard e card
 
 A integração traz o próprio card e o próprio dashboard: não há mais nada para

@@ -1,0 +1,59 @@
+# Hikvision Virtual Indoor Station
+
+> A Home Assistant custom integration (domain `hikvision_virtual_indoor_station`) that makes Home Assistant the indoor station of a Hikvision video door station: the door's button rings in Home Assistant, the call is answered, talked through (push-to-talk) and hung up from dashboards and phones, and the doors open. Everything stays on the local network: SIP carries the call, RTSP the picture and sound, ISAPI the doors. License: MIT.
+
+This file is an overview for language models. The README is the user guide; AGENTS.md holds the rules for contributors.
+
+## Key facts
+
+- Domain `hikvision_virtual_indoor_station`; integration type `device`; IoT class `local_push`; Home Assistant 2026.10 or newer.
+- Installed from the Home Assistant Marketplace as a custom repository: `https://github.com/webysther/ha-hikvision-virtual-indoor-station`.
+- One config entry per door station, added with its address and an account of its web page. The door station's VoIP line must then point at Home Assistant (UDP port 5060), with its call button set to call the telephone gateway first.
+- The device side lives in the library aiohikvision (PyPI, Apache-2.0, `https://github.com/webysther/aio-hikvision`), pinned to an exact version.
+- Hybrid design: the call and the microphone during a call go over SIP (G.711, 40 ms packets, the size the door station plays best); the door's picture and sound come over RTSP (the camera entity, played with WebRTC); doors, the speaker outside a call and the health check go over ISAPI.
+- Tested on a DS-KD8003-IME1(B) with firmware V3.7.3. Other DS-KD and DS-KV door stations with a VoIP line are expected to work.
+- Texts in English, Italian and Brazilian Portuguese. Self-assessed at the Platinum tier of the integration quality scale (`quality_scale.yaml`).
+
+## Entities (per door station)
+
+- Camera: RTSP stream with sound, and snapshots reshaped to the stream's aspect ratio.
+- Doorbell (event): `ring`, `answered`, `rejected`, `missed`, `ended`, with `call_id`, `caller`, `callee`, `end_reason`.
+- Call (sensor): `idle`, `ringing`, `answered`.
+- SIP registration (diagnostic binary sensor): on while the door station can call Home Assistant.
+- Buttons: one Open door per door (unavailable when its output drives no lock), Answer, Hang up, Reject.
+- Output (diagnostic sensor): what a changeable output drives (`electric_lock`, `doorbell`, `disabled`).
+
+## Card, dashboard and panel
+
+- Card `custom:hikvision-indoor-station-card`, keys `device_id`, `talk_mode` (`hold` or `toggle`), `shortcuts` (entities, or `{entity, name, icon}`). A standard card laid out like an indoor station: the camera, Answer, Hang up or Reject, Monitor, Push to talk, the ringer, a key per door, shortcuts.
+- Dashboard strategy `custom:hikvision-indoor-station`: one view per door station, with its card and activity.
+- Panel `/hikvision-indoor-station?entry=<entry_id>&call=<token>&answer=1`, out of the sidebar: a door station's card on its own page, opened by the phones' notifications.
+
+## Phones
+
+- Each phone with the Home Assistant app is a subentry `extension` of a door station: `device_id`, `do_not_disturb`, `open_door`. Adding or changing one does not reload the entry.
+- When the door rings, each phone not in do not disturb gets a notification through `notify.mobile_app_<phone>`: the door's picture, time-sensitive on iOS, high priority on Android, buttons Answer (opens the panel, which answers), Open door (first door with a lock) and Reject. The buttons act only while their call lasts; the notification is cleared when the call moves on.
+- Outside Home Assistant a call is named by a token (a SHA-256 digest of its SIP Call-ID, 16 hex digits), never by the Call-ID.
+- A phone that leaves Home Assistant gets the repair issue `phone_gone`, whose fix removes it.
+
+## Websocket commands (for cards)
+
+- `hikvision_virtual_indoor_station/subscribe` `{entry_id}`: the state of the door station (registration, doors, locks, speaker, the latest call), pushed on every change.
+- `hikvision_virtual_indoor_station/call` `{entry_id, call_id, action}`, with `action` one of `answer`, `reject`, `hangup`.
+- `hikvision_virtual_indoor_station/open_door` `{entry_id, door}`.
+- `hikvision_virtual_indoor_station/talk` `{entry_id}`: binary G.711 frames go to the answered call, or to the door's speaker outside a call.
+
+## Known limits
+
+- One SIP server on UDP port 5060: it cannot run next to another SIP server on that port (such as the Voice over IP integration).
+- G.711 only. The door station's talk time ends calls (90 s by default). Half duplex: talk by turns.
+- Talking needs Home Assistant opened over HTTPS (the browser's microphone).
+- Android notifications show three buttons, so a notification opens the first door with a lock only.
+
+## Docs
+
+- [README](https://github.com/webysther/ha-hikvision-virtual-indoor-station/blob/main/README.md): installation, configuration of the door station, card, phones, troubleshooting.
+- [Tutorial](https://github.com/webysther/ha-hikvision-virtual-indoor-station/blob/main/docs/tutorial.md): from a door station to a working indoor station, step by step.
+- [CHANGELOG](https://github.com/webysther/ha-hikvision-virtual-indoor-station/blob/main/CHANGELOG.md)
+- [AGENTS.md](https://github.com/webysther/ha-hikvision-virtual-indoor-station/blob/main/AGENTS.md): layout, checks and compatibility rules.
+- [ADR-0001, the hybrid call](https://github.com/webysther/aio-hikvision/blob/main/docs/ADR-0001-hybrid-call.md)

@@ -131,6 +131,9 @@ Il sensore **SIP registration** si accende quando il citofono si registra.
 L'indirizzo, l'account e la password si possono cambiare in seguito con
 **Riconfigura**.
 
+Passo dopo passo, dal citofono alla plancia e ai telefoni:
+[il tutorial](https://github.com/webysther/ha-hikvision-virtual-indoor-station/blob/main/docs/tutorial.md) (in inglese).
+
 ## Plancia e scheda
 
 L'integrazione porta la sua scheda e la sua plancia: non c'è nient'altro da

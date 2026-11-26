@@ -77,6 +77,9 @@ station.
   (VoIP line, number and call priority).
 - The README in Italian and Brazilian Portuguese, with a section on the
   dashboard and the card.
+- A tutorial (`docs/tutorial.md`), from a door station to a working indoor
+  station with its dashboard and phones, and an overview for language models
+  (`llms.txt`).
 
 - A door opens only when its output drives a lock: the door stations list every
   door they can open remotely, even one whose relay rings a doorbell or drives

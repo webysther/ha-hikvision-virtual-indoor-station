@@ -126,6 +126,9 @@ Then point the door station at Home Assistant, in its web page:
 The **SIP registration** sensor turns on once the door station registers. The
 address, account and password can be changed later with **Reconfigure**.
 
+Step by step, from the door station to the dashboard and the phones:
+[the tutorial](https://github.com/webysther/ha-hikvision-virtual-indoor-station/blob/main/docs/tutorial.md).
+
 ## Dashboard and card
 
 The integration brings its own card and dashboard: there is nothing else to
