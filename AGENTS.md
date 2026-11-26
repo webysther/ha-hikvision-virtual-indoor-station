@@ -70,10 +70,18 @@ custom_components/hikvision_virtual_indoor_station/
   websocket.py     the commands of the cards: subscribe, call, open_door, talk
                    (binary frames routed to the call or to the speaker)
   diagnostics.py   masked: no addresses, names or account
+  dashboard.py     serves frontend/ and has the frontend load it
+  frontend/        JavaScript without build (// @ts-check + JSDoc):
+                   hikvision-indoor-station-card.js (the card, laid out like
+                   a wall monitor), hikvision-indoor-station-dashboard.js (the
+                   dashboard strategy, a view per door station, and the
+                   helpers the card shares)
   strings.json, translations/ (en, it, pt-BR), icons.json, quality_scale.yaml,
   manifest.json, version.py, brand/ (original art, not Hikvision's)
 tests/             pytest-homeassistant-custom-component; aiohikvision mocked
                    at its boundary (DoorStation, CallServer)
+tests/frontend/    node --test of the card and the strategy (fixtures.mjs: door
+                   stations as the frontend has them)
 release.sh         releases, run by the maintainer
 ```
 
@@ -88,7 +96,8 @@ pip install -r requirements_test.txt
 ruff format custom_components tests && ruff check custom_components tests
 mypy                                   # strict, configured in pyproject.toml
 pytest --cov --cov-report=term-missing
-npx prettier --check .                 # the YAML
+node --test "tests/frontend/*.test.mjs" # the card and the dashboard
+npx prettier --check .                 # the YAML and the JavaScript
 ```
 
 CI runs them (`tests.yaml`), with hassfest and the checks of the Marketplace
@@ -103,6 +112,9 @@ Users' automations and dashboards depend on what the integration exposes.
   (`Identity.stable_id`), as its device; entities are `<serial>_<key>`, with the
   keys `call`, `doorbell`, `sip_registered`, `camera`, `answer`, `hang_up`,
   `reject` and `open_door_<number>`.
+- Never rename the custom elements (`custom:hikvision-indoor-station-card`, the strategy
+  `custom:hikvision-indoor-station`) nor the keys of the card's configuration
+  (`device_id`): they are in users' dashboards.
 - Never rename the states of the call sensor (`CALL_STATES`), the event types of the
   doorbell (`EVENT_TYPES`), nor the fields of the websocket commands and of the
   doorbell's events (`call_id`, `caller`, `callee`, `end_reason`).

@@ -1,6 +1,7 @@
 {
 	"domain": "hikvision_virtual_indoor_station",
 	"name": "Hikvision Virtual Indoor Station",
+	"after_dependencies": ["frontend", "http"],
 	"categories": ["security_safety.doorbells_intercoms"],
 	"codeowners": ["@webysther"],
 	"config_flow": true,

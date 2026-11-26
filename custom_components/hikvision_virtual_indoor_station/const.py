@@ -5,7 +5,26 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Final
 
+from .version import __version__
+
 DOMAIN: Final = "hikvision_virtual_indoor_station"
+
+VERSION: Final = __version__
+"""The version of the integration: "develop" in the repository, the tag in a release."""
+
+FRONTEND_URL: Final = f"/{DOMAIN}/frontend/{VERSION}"
+"""URL of the modules of the frontend, loaded by the frontend of every user.
+
+The browsers keep the modules in their cache: the version in the path makes them load
+the modules again when the integration is updated, and the card imports the dashboard
+strategy by a relative path, which keeps the version.
+"""
+
+FRONTEND_MODULES: Final = (
+    "hikvision-indoor-station-dashboard.js",
+    "hikvision-indoor-station-card.js",
+)
+"""The modules of the frontend: the dashboard strategy and the card."""
 
 # The SIP port of Home Assistant, where the VoIP line of each door station registers and
 # calls. One for all door stations: the doors tell their calls apart by address.

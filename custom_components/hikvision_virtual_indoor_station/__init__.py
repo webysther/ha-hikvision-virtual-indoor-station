@@ -34,6 +34,7 @@ from homeassistant.helpers.typing import ConfigType
 from . import sip, websocket
 from .const import DEFAULT_PORT, DOMAIN
 from .coordinator import HealthCoordinator
+from .dashboard import async_offer_the_frontend
 from .station import IndoorStation
 
 PLATFORMS = [
@@ -49,8 +50,9 @@ type IndoorStationConfigEntry = ConfigEntry[IndoorStation]
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Register the commands of the cards."""
+    """Register the commands of the cards, and offer the card and the dashboard."""
     websocket.async_register_commands(hass)
+    await async_offer_the_frontend(hass)
     return True
 
 
