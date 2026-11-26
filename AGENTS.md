@@ -114,7 +114,7 @@ Users' automations and dashboards depend on what the integration exposes.
   `reject` and `open_door_<number>`.
 - Never rename the custom elements (`custom:hikvision-indoor-station-card`, the strategy
   `custom:hikvision-indoor-station`) nor the keys of the card's configuration
-  (`device_id`): they are in users' dashboards.
+  (`device_id`, `talk_mode`): they are in users' dashboards.
 - Never rename the states of the call sensor (`CALL_STATES`), the event types of the
   doorbell (`EVENT_TYPES`), nor the fields of the websocket commands and of the
   doorbell's events (`call_id`, `caller`, `callee`, `end_reason`).

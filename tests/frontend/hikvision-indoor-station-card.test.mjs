@@ -4,6 +4,8 @@ import { describe, it } from "node:test";
 
 import {
   CARD,
+  RING,
+  Ringer,
   actionName,
   callMessage,
   callStateName,
@@ -11,11 +13,15 @@ import {
   checkConfig,
   doorName,
   doorsOf,
+  elapsed,
   mainActions,
   openDoorMessage,
   screenOf,
   stubConfig,
+  talkAllowed,
+  talkMessage,
 } from "../../custom_components/hikvision_virtual_indoor_station/frontend/hikvision-indoor-station-card.js";
+import { TEXTS } from "../../custom_components/hikvision_virtual_indoor_station/frontend/hikvision-indoor-station-dashboard.js";
 import { STATIONS, homeAssistant } from "./fixtures.mjs";
 
 /** Return a snapshot of a door station, as `subscribe` gives it, with a call in a state. */
@@ -66,12 +72,12 @@ describe("the main row", () => {
     mainActions(state, monitoring).map((action) => action.key);
 
   it("answers or refuses a ringing call, hangs up an answered one, monitors otherwise", () => {
-    assert.deepEqual(keys("ringing"), ["answer", "reject"]);
+    assert.deepEqual(keys("ringing"), ["answer", "reject", "ring"]);
     assert.deepEqual(keys("answered"), ["hang_up"]);
-    assert.deepEqual(keys("idle"), ["monitor"]);
+    assert.deepEqual(keys("idle"), ["monitor", "ring"]);
     assert.deepEqual(
       mainActions("ringing", false).map((action) => action.tone),
-      ["accept", "decline"],
+      ["accept", "decline", "neutral"],
     );
     assert.equal(mainActions("idle", true)[0].active, true);
   });
@@ -138,5 +144,121 @@ describe("the doors", () => {
       entry_id: "entry_front",
       door: 2,
     });
+  });
+});
+
+describe("talking", () => {
+  it("goes with an answered call, or through the speaker while idle, never while it rings", () => {
+    const withSpeaker = snapshot(null);
+    assert.equal(talkAllowed("answered", snapshot("answered")), true);
+    assert.equal(talkAllowed("idle", withSpeaker), true);
+    assert.equal(talkAllowed("idle", { ...withSpeaker, speaker: false }), false);
+    assert.equal(talkAllowed("idle", null), false);
+    assert.equal(talkAllowed("ringing", snapshot("ringing")), false);
+  });
+
+  it("mutes the door while you talk: it hears and speaks by turns", () => {
+    assert.deepEqual(screenOf("answered", false, true), { live: true, audible: false });
+    assert.deepEqual(screenOf("idle", true, true), { live: true, audible: false });
+  });
+
+  it("has a text in every language for every way a talk can fail or end", () => {
+    const reasons = ["talk_https", "talk_unsupported", "talk_denied", "talk_failed"];
+    const ends = ["replaced", "device", "unloaded", "call_answered"];
+    for (const texts of Object.values(TEXTS)) {
+      for (const reason of [...reasons, ...ends]) assert.ok(talkMessage(texts, reason), reason);
+    }
+    // Nothing to tell: you stopped it, or its call ended, which the card shows
+    assert.equal(talkMessage(TEXTS.en, "stopped"), null);
+    assert.equal(talkMessage(TEXTS.en, "call_ended"), null);
+    assert.equal(talkMessage(TEXTS.en, "something new"), TEXTS.en.talk_failed);
+  });
+
+  it("is held by default, or toggled", () => {
+    assert.deepEqual(checkConfig({ type: CARD, talk_mode: "toggle" }).talk_mode, "toggle");
+    assert.throws(() => checkConfig({ type: CARD, talk_mode: "shout" }));
+  });
+});
+
+describe("the time of a call", () => {
+  it("counts minutes and seconds since it was answered", () => {
+    const answered = "2026-11-26T10:00:00+00:00";
+    assert.equal(elapsed(answered, Date.parse(answered) + 65_000), "1:05");
+    assert.equal(elapsed(answered, Date.parse(answered) - 1000), "0:00");
+    assert.equal(elapsed(null, Date.now()), null);
+  });
+});
+
+describe("the ringer", () => {
+  /** An AudioContext that records the tones it plays. */
+  function audio(state = "running") {
+    const played = [];
+    const context = {
+      state,
+      currentTime: 0,
+      destination: {},
+      resumed: 0,
+      closed: 0,
+      resume: async () => (context.resumed += 1),
+      close: async () => (context.closed += 1),
+      createOscillator: () => ({
+        frequency: {},
+        connect: (gain) => gain,
+        start: () => {},
+        stop: () => {},
+      }),
+      createGain: () => ({
+        gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} },
+        connect: () => {},
+      }),
+    };
+    const create = context.createOscillator;
+    context.createOscillator = () => {
+      const oscillator = create();
+      played.push(oscillator.frequency);
+      return oscillator;
+    };
+    return { context, played };
+  }
+
+  it("rings its tones until stopped", () => {
+    const { context, played } = audio();
+    const ringer = new Ringer(() => context);
+    ringer.start();
+    ringer.start(); // once
+    assert.equal(ringer.ringing, true);
+    assert.equal(played.length, RING.tones.length);
+    assert.deepEqual(
+      played.map((frequency) => frequency.value),
+      RING.tones,
+    );
+    ringer.stop();
+    assert.equal(ringer.ringing, false);
+    ringer.close();
+    assert.equal(context.closed, 1);
+  });
+
+  it("is blocked until the page is tapped, and plays nothing meanwhile", () => {
+    const { context, played } = audio("suspended");
+    const ringer = new Ringer(() => context);
+    ringer.start();
+    assert.equal(ringer.blocked, true);
+    assert.equal(played.length, 0);
+    ringer.resume();
+    assert.ok(context.resumed >= 2);
+    ringer.stop();
+  });
+});
+
+describe("the ringer button", () => {
+  it("mutes the ringer of this browser, and says how to ring again", () => {
+    const hass = { ...homeAssistant(["front"]), language: "pt-BR" };
+    const [, , ring] = mainActions("ringing", false, false);
+    assert.equal(ring.key, "ring");
+    assert.equal(actionName(hass, ring), "Silenciar campainha");
+    const muted = mainActions("idle", false, true)[1];
+    assert.equal(muted.active, true);
+    assert.equal(muted.icon, "mdi:bell-off");
+    assert.equal(actionName(hass, muted), "Campainha");
   });
 });

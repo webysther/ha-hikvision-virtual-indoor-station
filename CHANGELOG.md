@@ -36,6 +36,14 @@ station.
   Reject while it rings, Hang up once answered, Monitor while idle (the door's
   sound plays once answered or monitored); a key for each door. A warning shows
   when the door station is not registered.
+- Push-to-talk on the card: hold the button (or the space bar on it), or press
+  it once to talk and once to stop (`talk_mode: toggle`). Your voice goes with
+  an answered call, or through the door's speaker while idle; the door's sound
+  is muted while you talk. The card says why a talk could not start (HTTPS, the
+  microphone's permission) or why it ended.
+- The browser rings while the door rings, with a button to mute it (remembered
+  by each browser), and asks for a tap when the browser holds the sound. The
+  time of an answered call is counted.
 - The indoor station dashboard (`custom:hikvision-indoor-station`, in **Add
   dashboard**): a view for each door station, with its card and its activity.
 - The README shows how to set the door station up, with pictures of its web page

@@ -3,7 +3,7 @@
  * The Hikvision Virtual Indoor Station card: the screen of an indoor station, laid out
  * like a wall monitor. On top the door's camera; under it the state of the call and the
  * buttons it allows (answer and refuse while it rings, hang up while it is answered,
- * monitor while idle); then a key for each door.
+ * monitor while idle, mute the ringer); then push-to-talk and a key for each door.
  *
  * The card follows its door station through the websocket command
  * `hikvision_virtual_indoor_station/subscribe` (the latest call and its id), and every
@@ -13,7 +13,8 @@
  * monitors: a door station serves few streams at once, and every open dashboard would
  * hold one. Otherwise the card shows the camera's picture. The door's sound plays once
  * the call is answered or the monitoring starts, both taps, which browsers require
- * before a page plays sound.
+ * before a page plays sound; it is muted while you talk, as the door station hears
+ * and speaks by turns.
  *
  * Plain JavaScript without build or dependencies, served by the integration
  * (dashboard.py). The functions are exported for the tests (tests/frontend).
@@ -21,18 +22,22 @@
 import {
   CARD,
   PLATFORM,
+  TEXTS,
   findStations,
   stationOf,
   textsIn,
   translated,
   withTexts,
 } from "./hikvision-indoor-station-dashboard.js";
+import { Microphone } from "./talk.js";
 
 export { CARD };
 
 /**
  * @typedef {import("./hikvision-indoor-station-dashboard.js").Hass} Hass
  * @typedef {import("./hikvision-indoor-station-dashboard.js").Station} Station
+ * @typedef {import("./talk.js").TalkEnd} TalkEnd
+ * @typedef {typeof TEXTS.en} Texts
  * @typedef {{
  *   id: string,
  *   state: "ringing" | "answered" | "ended",
@@ -46,12 +51,15 @@ export { CARD };
  * @typedef {{ registered: boolean, doors: number[], speaker: boolean, call: Call | null }} Snapshot
  *   The state of a door station, as `subscribe` gives it (IndoorStation.snapshot).
  * @typedef {"idle" | "ringing" | "answered"} CallState The states of the call sensor.
- * @typedef {"answer" | "reject" | "hang_up" | "monitor"} ActionKey
+ * @typedef {"answer" | "reject" | "hang_up" | "monitor" | "ring"} ActionKey
  * @typedef {{ key: ActionKey, icon: string, tone: "accept" | "decline" | "neutral", active?: boolean }} Action
  *   A button of the main row.
- * @typedef {{ type: string, device_id?: string }} CardConfig
+ * @typedef {"hold" | "toggle"} TalkMode Push-to-talk: talk while the button is held, or
+ *   from one press to the next.
+ * @typedef {{ type: string, device_id?: string, talk_mode?: TalkMode }} CardConfig
  * @typedef {{ card: HTMLElement, screen: HTMLElement, name: HTMLElement, state: HTMLElement,
- *   warning: HTMLElement, actions: HTMLElement, doors: HTMLElement }} Parts The parts of the card.
+ *   warning: HTMLElement, actions: HTMLElement, talk: HTMLElement, doors: HTMLElement }} Parts
+ *   The parts of the card.
  */
 
 /** The action of the websocket command `call` for each button of the call. */
@@ -59,6 +67,15 @@ export const CALL_ACTIONS = { answer: "answer", reject: "reject", hang_up: "hang
 
 /** How long the card waits for the frontend to define its camera stream, in ms. */
 export const STREAM_WAIT = 5000;
+
+/** Where the browser remembers that its ringer is muted (one choice per browser). */
+export const RING_MUTED_KEY = `${PLATFORM}.ring_muted`;
+
+/**
+ * The ring of the browser: two tones, then a pause, again and again. Its own sound,
+ * made by the browser: no recording is played.
+ */
+export const RING = { tones: [880, 660], tone: 0.4, period: 2.5, volume: 0.25 };
 
 /**
  * Return the state of the call the card shows: an ended call leaves the station idle.
@@ -83,17 +100,39 @@ export function callStateName(hass, state) {
 }
 
 /**
+ * Return how long a call has been answered, as minutes and seconds ("1:05").
+ *
+ * @param {string | null | undefined} since When it was answered (ISO 8601).
+ * @param {number} now In ms since the epoch.
+ */
+export function elapsed(since, now) {
+  const start = since ? Date.parse(since) : NaN;
+  if (Number.isNaN(start)) return null;
+  const seconds = Math.max(0, Math.floor((now - start) / 1000));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+/**
  * Return the buttons of the main row: those the state of the call allows.
  *
  * @param {CallState} state
  * @param {boolean} monitoring
+ * @param {boolean} [ringMuted] Whether the ringer of this browser is muted.
  * @returns {Action[]}
  */
-export function mainActions(state, monitoring) {
+export function mainActions(state, monitoring, ringMuted = false) {
+  /** @type {Action} */
+  const ring = {
+    key: "ring",
+    icon: ringMuted ? "mdi:bell-off" : "mdi:bell",
+    tone: "neutral",
+    active: ringMuted,
+  };
   if (state === "ringing") {
     return [
       { key: "answer", icon: "mdi:phone", tone: "accept" },
       { key: "reject", icon: "mdi:phone-cancel", tone: "decline" },
+      ring,
     ];
   }
   if (state === "answered") return [{ key: "hang_up", icon: "mdi:phone-hangup", tone: "decline" }];
@@ -104,12 +143,13 @@ export function mainActions(state, monitoring) {
       tone: "neutral",
       active: monitoring,
     },
+    ring,
   ];
 }
 
 /**
  * Return the name of a button of the main row in the language of the user: the names
- * of the buttons of the integration, and the texts of the card for monitoring.
+ * of the buttons of the integration, and the texts of the card for the others.
  *
  * @param {Hass} hass
  * @param {Action} action
@@ -117,18 +157,47 @@ export function mainActions(state, monitoring) {
 export function actionName(hass, action) {
   const texts = textsIn(hass.language);
   if (action.key === "monitor") return action.active ? texts.stop_monitor : texts.monitor;
+  if (action.key === "ring") return action.active ? texts.unmute_ring : texts.mute_ring;
   return translated(hass, `entity.button.${action.key}.name`) ?? action.key;
 }
 
 /**
  * Return what the screen shows: the live camera or its picture, and whether the door's
- * sound plays.
+ * sound plays. It is muted while you talk: the door station hears and speaks by turns.
  *
  * @param {CallState} state
  * @param {boolean} monitoring
+ * @param {boolean} [talking]
  */
-export function screenOf(state, monitoring) {
-  return { live: state !== "idle" || monitoring, audible: state === "answered" || monitoring };
+export function screenOf(state, monitoring, talking = false) {
+  return {
+    live: state !== "idle" || monitoring,
+    audible: (state === "answered" || monitoring) && !talking,
+  };
+}
+
+/**
+ * Return whether you can talk to the door: with an answered call, or through the door's
+ * speaker while idle. Not while it rings: the call is answered first.
+ *
+ * @param {CallState} state
+ * @param {Snapshot | null} snapshot
+ */
+export function talkAllowed(state, snapshot) {
+  return state === "answered" || (state === "idle" && Boolean(snapshot?.speaker));
+}
+
+/**
+ * Return the text of why a talk could not start or ended, or null when there is nothing
+ * to tell: you stopped it, or its call ended (the card shows that already).
+ *
+ * @param {Texts} texts
+ * @param {string} reason A code of talk.js (talk_https, …) or a TalkEnd.
+ */
+export function talkMessage(texts, reason) {
+  if (reason === "stopped" || reason === "call_ended") return null;
+  const known = /** @type {Record<string, string>} */ (texts);
+  return known[reason] ?? texts.talk_failed;
 }
 
 /**
@@ -192,6 +261,9 @@ export function checkConfig(config) {
   if (config.device_id !== undefined && typeof config.device_id !== "string") {
     throw new Error("device_id must be the ID of a device of Hikvision Virtual Indoor Station");
   }
+  if (config.talk_mode !== undefined && !["hold", "toggle"].includes(config.talk_mode)) {
+    throw new Error("talk_mode must be hold or toggle");
+  }
   return config;
 }
 
@@ -208,6 +280,72 @@ export function stubConfig(hass) {
     : { type: `custom:${CARD}` };
 }
 
+/**
+ * The ringer of the browser: it rings while the door station rings. Browsers let a page
+ * play sound only after a tap on it: until then it is `blocked`, and `resume` (called on
+ * a tap) lets it ring.
+ */
+export class Ringer {
+  /** @param {() => AudioContext} [createContext] */
+  constructor(createContext = () => new AudioContext()) {
+    this.createContext = createContext;
+    /** @type {AudioContext | null} */
+    this.context = null;
+    /** @type {ReturnType<typeof setInterval> | null} */
+    this.timer = null;
+  }
+
+  get ringing() {
+    return this.timer !== null;
+  }
+
+  /** Whether the browser holds the sound until a tap on the page. */
+  get blocked() {
+    return this.context?.state === "suspended";
+  }
+
+  start() {
+    if (this.timer) return;
+    this.context ??= this.createContext();
+    this.resume();
+    this.#ring();
+    this.timer = setInterval(() => this.#ring(), RING.period * 1000);
+  }
+
+  stop() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+  }
+
+  resume() {
+    this.context?.resume().catch(() => {});
+  }
+
+  close() {
+    this.stop();
+    this.context?.close().catch(() => {});
+    this.context = null;
+  }
+
+  /** One ring: its tones one after the other, each fading in and out. */
+  #ring() {
+    const context = this.context;
+    if (!context || context.state !== "running") return;
+    RING.tones.forEach((frequency, index) => {
+      const start = context.currentTime + index * RING.tone;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.frequency.value = frequency;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(RING.volume, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + RING.tone);
+      oscillator.connect(gain).connect(context.destination);
+      oscillator.start(start);
+      oscillator.stop(start + RING.tone);
+    });
+  }
+}
+
 if (typeof customElements !== "undefined") {
   const STYLE = `
     ha-card { overflow: hidden; }
@@ -216,7 +354,7 @@ if (typeof customElements !== "undefined") {
     .header { display: flex; align-items: center; justify-content: space-between;
       padding: 12px 16px 4px; gap: 8px; }
     .name { font-size: 1.2em; font-weight: 500; }
-    .state { color: var(--secondary-text-color); }
+    .state { color: var(--secondary-text-color); font-variant-numeric: tabular-nums; }
     .state.ringing { color: var(--success-color, #43a047); font-weight: 500; }
     .state.answered { color: var(--primary-color); font-weight: 500; }
     .warning { padding: 4px 16px; color: var(--warning-color, #ffa600); }
@@ -230,6 +368,7 @@ if (typeof customElements !== "undefined") {
     button.accept { background: var(--success-color, #43a047); color: #fff; }
     button.decline { background: var(--error-color, #db4437); color: #fff; }
     button.active { background: var(--primary-color); color: var(--text-primary-color, #fff); }
+    .talk button { min-height: 72px; touch-action: none; user-select: none; -webkit-user-select: none; }
     .doors { border-top: 1px solid var(--divider-color); }
   `;
 
@@ -252,6 +391,25 @@ if (typeof customElements !== "undefined") {
     }
     const timeout = new Promise((resolve) => setTimeout(() => resolve(false), STREAM_WAIT));
     return Promise.race([customElements.whenDefined("ha-camera-stream").then(() => true), timeout]);
+  }
+
+  /** Return whether this browser muted its ringer; a page without storage rings. */
+  function ringMutedHere() {
+    try {
+      return localStorage.getItem(RING_MUTED_KEY) === "1";
+    } catch (_err) {
+      return false;
+    }
+  }
+
+  /** @param {boolean} muted */
+  function rememberRingMuted(muted) {
+    try {
+      if (muted) localStorage.setItem(RING_MUTED_KEY, "1");
+      else localStorage.removeItem(RING_MUTED_KEY);
+    } catch (_err) {
+      /* remembered for this page only */
+    }
   }
 
   class IndoorStationCard extends HTMLElement {
@@ -279,6 +437,21 @@ if (typeof customElements !== "undefined") {
     #stream = null;
     /** @type {boolean | null} Whether the frontend defined its camera stream, once known. */
     #streamDefined = null;
+    #ringMuted = ringMutedHere();
+    #ringer = new Ringer();
+    /** @type {Microphone | null} The talk in progress. */
+    #microphone = null;
+    /** @type {ReturnType<typeof setInterval> | null} Ticks the time of an answered call. */
+    #clock = null;
+
+    constructor() {
+      super();
+      // A tap on the card lets the browser play the ring and the microphone
+      this.addEventListener("pointerdown", () => {
+        this.#ringer.resume();
+        this.#microphone?.resume();
+      });
+    }
 
     /** @param {any} config */
     setConfig(config) {
@@ -308,9 +481,13 @@ if (typeof customElements !== "undefined") {
 
     disconnectedCallback() {
       this.#stop();
+      this.#stopTalk();
+      this.#ringer.close();
       this.#monitoring = false;
       this.#stream?.remove();
       this.#stream = null;
+      if (this.#clock) clearInterval(this.#clock);
+      this.#clock = null;
     }
 
     /** Subscribe to the state of the door station of the card, once. */
@@ -352,6 +529,18 @@ if (typeof customElements !== "undefined") {
       return this.#hass && { ...this.#hass, localize: this.#localize ?? this.#hass.localize };
     }
 
+    /** @param {string | null} message */
+    #notify(message) {
+      if (!message) return;
+      this.dispatchEvent(
+        new CustomEvent("hass-notification", {
+          detail: { message },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    }
+
     /**
      * Send a command, its buttons disabled until it is answered; a refusal is shown.
      *
@@ -365,14 +554,7 @@ if (typeof customElements !== "undefined") {
       try {
         await this.#hass.callWS(message);
       } catch (err) {
-        const text = /** @type {any} */ (err)?.message ?? String(err);
-        this.dispatchEvent(
-          new CustomEvent("hass-notification", {
-            detail: { message: text },
-            bubbles: true,
-            composed: true,
-          }),
-        );
+        this.#notify(/** @type {any} */ (err)?.message ?? String(err));
       } finally {
         this.#busy = null;
         this.#render();
@@ -386,9 +568,43 @@ if (typeof customElements !== "undefined") {
       if (action.key === "monitor") {
         this.#monitoring = !this.#monitoring;
         this.#render();
+      } else if (action.key === "ring") {
+        this.#ringMuted = !this.#ringMuted;
+        rememberRingMuted(this.#ringMuted);
+        this.#render();
       } else if (entry && call) {
         this.#send(action.key, callMessage(entry, call, action.key));
       }
+    }
+
+    /** Start talking to the door: with the call if one is answered, through its speaker otherwise. */
+    async #startTalk() {
+      const entry = this.#station?.entry_id;
+      const connection = this.#hass?.connection;
+      if (this.#microphone || !entry || !this.#hass || !connection) return;
+      const texts = textsIn(this.#hass.language);
+      const microphone = new Microphone({ connection }, entry, (/** @type {TalkEnd} */ reason) => {
+        if (this.#microphone === microphone) this.#microphone = null;
+        this.#notify(talkMessage(texts, reason));
+        this.#render();
+      });
+      this.#microphone = microphone;
+      this.#render();
+      try {
+        await microphone.start();
+      } catch (err) {
+        if (this.#microphone === microphone) this.#microphone = null;
+        this.#notify(talkMessage(texts, /** @type {any} */ (err)?.message ?? "talk_failed"));
+        this.#render();
+      }
+    }
+
+    #stopTalk() {
+      const microphone = this.#microphone;
+      if (!microphone) return;
+      this.#microphone = null;
+      this.#render();
+      microphone.stop();
     }
 
     /** Build the parts of the card once: the screen keeps its stream across renders. */
@@ -400,6 +616,7 @@ if (typeof customElements !== "undefined") {
       const part = (tag, className) => Object.assign(document.createElement(tag), { className });
       const card = document.createElement("ha-card");
       const header = part("div", "header");
+      /** @type {Parts} */
       const parts = {
         card,
         screen: part("div", "screen"),
@@ -407,12 +624,46 @@ if (typeof customElements !== "undefined") {
         state: part("div", "state"),
         warning: part("div", "warning"),
         actions: part("div", "row actions"),
+        talk: part("div", "row talk"),
         doors: part("div", "row doors"),
       };
       header.append(parts.name, parts.state);
-      card.append(parts.screen, header, parts.warning, parts.actions, parts.doors);
+      card.append(parts.screen, header, parts.warning, parts.actions, parts.talk, parts.doors);
       root.replaceChildren(style, card);
+      parts.talk.append(this.#talkButton());
       return parts;
+    }
+
+    /** The push-to-talk button, built once: re-rendering it would drop the press in progress. */
+    #talkButton() {
+      const button = document.createElement("button");
+      button.append(document.createElement("ha-icon"), document.createElement("span"));
+      const hold = () => (this.#config?.talk_mode ?? "hold") === "hold";
+      button.addEventListener("pointerdown", (event) => {
+        if (!hold()) return;
+        button.setPointerCapture?.(event.pointerId);
+        this.#startTalk();
+      });
+      for (const end of ["pointerup", "pointercancel"]) {
+        button.addEventListener(end, () => hold() && this.#stopTalk());
+      }
+      button.addEventListener("click", () => {
+        if (hold()) return;
+        if (this.#microphone) this.#stopTalk();
+        else this.#startTalk();
+      });
+      // The space bar, while the button has the focus: held to talk, as the pointer
+      button.addEventListener("keydown", (event) => {
+        if (event.key !== " " || event.repeat || !hold()) return;
+        event.preventDefault();
+        this.#startTalk();
+      });
+      button.addEventListener("keyup", (event) => {
+        if (event.key !== " " || !hold()) return;
+        event.preventDefault();
+        this.#stopTalk();
+      });
+      return button;
     }
 
     #render() {
@@ -422,23 +673,50 @@ if (typeof customElements !== "undefined") {
       const station = this.#station;
       if (!hass || !station) {
         parts.screen.hidden = true;
+        parts.talk.hidden = true;
         parts.name.textContent = "";
         parts.state.textContent = "";
         parts.warning.textContent = textsIn(hass?.language).no_station;
+        parts.warning.hidden = false;
         parts.actions.replaceChildren();
         parts.doors.replaceChildren();
+        this.#ringer.stop();
         return;
       }
+      const texts = textsIn(hass.language);
       const state = callStateOf(this.#snapshot);
+      const talking = this.#microphone !== null;
       parts.name.textContent = station.name;
       parts.state.className = `state ${state}`;
-      parts.state.textContent = callStateName(hass, state);
-      parts.warning.textContent =
-        this.#snapshot && !this.#snapshot.registered ? textsIn(hass.language).unregistered : "";
-      parts.warning.hidden = !parts.warning.textContent;
-      this.#renderScreen(hass, station, screenOf(state, this.#monitoring));
+      const time =
+        state === "answered" ? elapsed(this.#snapshot?.call?.answered_at, Date.now()) : null;
+      parts.state.textContent = [callStateName(hass, state), time].filter(Boolean).join(" ");
+      this.#tick(state === "answered");
+      this.#ring(state === "ringing" && !this.#ringMuted);
+      const warnings = [];
+      if (this.#snapshot && !this.#snapshot.registered) warnings.push(texts.unregistered);
+      if (this.#ringer.ringing && this.#ringer.blocked) warnings.push(texts.tap_for_sound);
+      parts.warning.textContent = warnings.join(" ");
+      parts.warning.hidden = !warnings.length;
+      this.#renderScreen(hass, station, screenOf(state, this.#monitoring, talking));
       this.#renderActions(hass, state);
+      this.#renderTalk(texts, talkAllowed(state, this.#snapshot), talking);
       this.#renderDoors(hass, station);
+    }
+
+    /** @param {boolean} answered Tick every second while a call is answered. */
+    #tick(answered) {
+      if (answered && !this.#clock) this.#clock = setInterval(() => this.#render(), 1000);
+      if (!answered && this.#clock) {
+        clearInterval(this.#clock);
+        this.#clock = null;
+      }
+    }
+
+    /** @param {boolean} ring */
+    #ring(ring) {
+      if (ring) this.#ringer.start();
+      else this.#ringer.stop();
     }
 
     /**
@@ -483,10 +761,11 @@ if (typeof customElements !== "undefined") {
       const { actions } = /** @type {Parts} */ (this.#parts);
       const call = this.#snapshot?.call;
       actions.replaceChildren(
-        ...mainActions(state, this.#monitoring).map((action) => {
+        ...mainActions(state, this.#monitoring, this.#ringMuted).map((action) => {
           const button = document.createElement("button");
           button.className = `${action.tone}${action.active ? " active" : ""}`;
-          button.disabled = action.key !== "monitor" && (!call || this.#busy !== null);
+          const local = action.key === "monitor" || action.key === "ring";
+          button.disabled = !local && (!call || this.#busy !== null);
           const icon = document.createElement("ha-icon");
           icon.setAttribute("icon", action.icon);
           const label = document.createElement("span");
@@ -496,6 +775,21 @@ if (typeof customElements !== "undefined") {
           return button;
         }),
       );
+    }
+
+    /** @param {Texts} texts @param {boolean} allowed @param {boolean} talking */
+    #renderTalk(texts, allowed, talking) {
+      const { talk } = /** @type {Parts} */ (this.#parts);
+      // A talk the door ends by itself ends here too; one the state no longer allows stops
+      if (talking && !allowed) this.#stopTalk();
+      talk.hidden = !allowed;
+      const button = /** @type {HTMLButtonElement} */ (talk.firstElementChild);
+      button.className = talking ? "active" : "";
+      button
+        .querySelector("ha-icon")
+        ?.setAttribute("icon", talking ? "mdi:microphone" : "mdi:microphone-outline");
+      const label = button.querySelector("span");
+      if (label) label.textContent = talking ? texts.talking : texts.talk;
     }
 
     /** @param {Hass} hass @param {Station} station */
@@ -522,7 +816,7 @@ if (typeof customElements !== "undefined") {
     }
 
     getCardSize() {
-      return 8;
+      return 9;
     }
 
     /** @param {Hass} hass */
