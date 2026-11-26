@@ -70,14 +70,35 @@ Station**, then:
 | Username | An account of its web page (its admin account works) |
 | Password | The password of that account |
 
-Then point the door station at Home Assistant. In its web page, under the VoIP
-(SIP) settings:
+Then point the door station at Home Assistant, in its web page:
 
-1. Enable the line, and set the server to the address of Home Assistant, port
-   5060.
-2. Give the line a number and a display name.
-3. Map the call button (the room) to a SIP number: the door's screen shows it
-   during calls.
+1. **System and Maintenance → System Configuration → Network → Device Access →
+   VoIP**, line **VoIP1**:
+   - turn on **Enable VoIP Gateway**;
+   - **Server IP Address**: the address of Home Assistant; **Server Port**:
+     5060;
+   - **Register User Name** and **Number**: a number for the door station, such
+     as `100` (Home Assistant does not check the **Registration Password**);
+   - **Display User Name**: a name for the door station;
+   - **Expiry Time** can stay at 60 minutes: Home Assistant shortens it to 10;
+   - leave **Enable P2P** off.
+
+   Once saved, **Registration Status** shows **Registered**.
+
+   ![The VoIP line of the door station, registered with Home Assistant](https://raw.githubusercontent.com/webysther/ha-hikvision-virtual-indoor-station/main/docs/images/voip.png)
+
+2. **Video Intercom → Call Parameters → Number Settings**: map the room of the
+   call button (room 1) to the SIP line. The door's screen shows its name during
+   calls.
+
+   ![Room 1 mapped to the SIP line](https://raw.githubusercontent.com/webysther/ha-hikvision-virtual-indoor-station/main/docs/images/number-settings.png)
+
+3. **Video Intercom → Call Parameters → Call Priority**: **Telephone Gateway**
+   as **Priority1**, so the button calls Home Assistant. Its **Ring Duration**
+   is how long a call rings before it is missed.
+
+   ![Telephone Gateway as the first call priority](https://raw.githubusercontent.com/webysther/ha-hikvision-virtual-indoor-station/main/docs/images/call-priority.png)
+
 4. Set the SIP audio to G.711 only.
 
 The **SIP registration** sensor turns on once the door station registers. The
