@@ -4,9 +4,16 @@ import { describe, it } from "node:test";
 
 import {
   CARD,
+  actionName,
+  callMessage,
   callStateName,
   callStateOf,
   checkConfig,
+  doorName,
+  doorsOf,
+  mainActions,
+  openDoorMessage,
+  screenOf,
   stubConfig,
 } from "../../custom_components/hikvision_virtual_indoor_station/frontend/hikvision-indoor-station-card.js";
 import { STATIONS, homeAssistant } from "./fixtures.mjs";
@@ -51,5 +58,85 @@ describe("configuration", () => {
       device_id: STATIONS.back.device,
     });
     assert.deepEqual(stubConfig(homeAssistant([])), { type: `custom:${CARD}` });
+  });
+});
+
+describe("the main row", () => {
+  const keys = (state, monitoring = false) =>
+    mainActions(state, monitoring).map((action) => action.key);
+
+  it("answers or refuses a ringing call, hangs up an answered one, monitors otherwise", () => {
+    assert.deepEqual(keys("ringing"), ["answer", "reject"]);
+    assert.deepEqual(keys("answered"), ["hang_up"]);
+    assert.deepEqual(keys("idle"), ["monitor"]);
+    assert.deepEqual(
+      mainActions("ringing", false).map((action) => action.tone),
+      ["accept", "decline"],
+    );
+    assert.equal(mainActions("idle", true)[0].active, true);
+  });
+
+  it("names the buttons as the integration does, and the monitoring with the texts of the card", () => {
+    const hass = {
+      ...homeAssistant(["front"], {
+        "component.hikvision_virtual_indoor_station.entity.button.answer.name": "Atender",
+      }),
+      language: "pt-BR",
+    };
+    assert.equal(actionName(hass, mainActions("ringing", false)[0]), "Atender");
+    assert.equal(actionName(hass, mainActions("idle", false)[0]), "Monitorar");
+    assert.equal(actionName(hass, mainActions("idle", true)[0]), "Parar");
+    // Before the texts are loaded
+    assert.equal(
+      actionName(homeAssistant(["front"]), mainActions("answered", false)[0]),
+      "hang_up",
+    );
+  });
+
+  it("names the call it acts on", () => {
+    const call = snapshot("ringing").call;
+    assert.deepEqual(callMessage("entry_front", call, "answer"), {
+      type: "hikvision_virtual_indoor_station/call",
+      entry_id: "entry_front",
+      call_id: "call-1",
+      action: "answer",
+    });
+    assert.equal(callMessage("entry_front", call, "hang_up").action, "hangup");
+    assert.equal(callMessage("entry_front", call, "reject").action, "reject");
+  });
+});
+
+describe("the screen", () => {
+  it("plays live only while it rings, a call is answered or someone monitors", () => {
+    assert.deepEqual(screenOf("idle", false), { live: false, audible: false });
+    // The visitor is seen while it rings, and heard once answered
+    assert.deepEqual(screenOf("ringing", false), { live: true, audible: false });
+    assert.deepEqual(screenOf("answered", false), { live: true, audible: true });
+    assert.deepEqual(screenOf("idle", true), { live: true, audible: true });
+  });
+});
+
+describe("the doors", () => {
+  it("are those of the door station, numbered when there are several", () => {
+    const texts = {
+      "component.hikvision_virtual_indoor_station.entity.button.open_door.name": "Abrir porta",
+    };
+    const hass = homeAssistant(["front"], texts);
+    hass.localize = (key, values) =>
+      key.endsWith("open_door_numbered.name") ? `Abrir porta ${values.door}` : (texts[key] ?? "");
+    assert.deepEqual(doorsOf(null), []);
+    assert.deepEqual(doorsOf({ ...snapshot(null), doors: [1, 2] }), [1, 2]);
+    assert.equal(doorName(hass, 1, 1), "Abrir porta");
+    assert.equal(doorName(hass, 2, 2), "Abrir porta 2");
+    assert.equal(doorName(homeAssistant(["front"]), 2, 2), "Open door 2");
+    assert.equal(doorName(homeAssistant(["front"]), 1, 1), "Open door");
+  });
+
+  it("open with the number of the door", () => {
+    assert.deepEqual(openDoorMessage("entry_front", 2), {
+      type: "hikvision_virtual_indoor_station/open_door",
+      entry_id: "entry_front",
+      door: 2,
+    });
   });
 });

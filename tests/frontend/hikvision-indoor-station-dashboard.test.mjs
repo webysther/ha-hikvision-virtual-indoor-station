@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 
 import {
   CARD,
+  TEXTS,
   findStations,
   generateDashboard,
   stationOf,
@@ -59,6 +60,12 @@ describe("texts", () => {
     assert.equal(textsIn("it-IT").activity, "Attività");
     assert.equal(textsIn("de").activity, "Activity");
     assert.equal(textsIn(undefined).activity, "Activity");
+  });
+
+  it("exist in every language", () => {
+    for (const [language, texts] of Object.entries(TEXTS)) {
+      assert.deepEqual(Object.keys(texts).sort(), Object.keys(TEXTS.en).sort(), language);
+    }
   });
 
   it("of the entities come from the integration", async () => {

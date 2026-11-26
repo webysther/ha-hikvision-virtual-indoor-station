@@ -123,9 +123,10 @@ export async function withTexts(hass) {
  *
  * @param {Hass} hass
  * @param {string} key e.g. "entity.button.answer.name"
+ * @param {Record<string, string | number>} [values] The placeholders of the text, e.g. `{ door: 2 }`.
  */
-export function translated(hass, key) {
-  return hass.localize?.(`component.${PLATFORM}.${key}`) || undefined;
+export function translated(hass, key, values) {
+  return hass.localize?.(`component.${PLATFORM}.${key}`, values) || undefined;
 }
 
 /**
@@ -137,16 +138,25 @@ export const TEXTS = {
     description: "The indoor station of a Hikvision door station: answer, talk, open the door.",
     no_station: "No door station yet: add one in Settings → Devices & services.",
     activity: "Activity",
+    monitor: "Monitor",
+    stop_monitor: "Stop monitoring",
+    unregistered: "The door station is not registered with Home Assistant: it cannot call.",
   },
   it: {
     description: "Il posto interno di un citofono Hikvision: rispondi, parla, apri la porta.",
     no_station: "Ancora nessun citofono: aggiungine uno in Impostazioni → Dispositivi e servizi.",
     activity: "Attività",
+    monitor: "Monitora",
+    stop_monitor: "Interrompi",
+    unregistered: "Il citofono non è registrato in Home Assistant: non può chiamare.",
   },
   "pt-BR": {
     description: "O monitor interno de um porteiro Hikvision: atender, falar, abrir a porta.",
     no_station: "Nenhum porteiro ainda: adicione um em Configurações → Dispositivos e serviços.",
     activity: "Atividade",
+    monitor: "Monitorar",
+    stop_monitor: "Parar",
+    unregistered: "O porteiro não está registrado no Home Assistant: ele não consegue chamar.",
   },
 };
 
