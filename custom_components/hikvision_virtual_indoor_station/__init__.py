@@ -35,6 +35,7 @@ from . import sip, websocket
 from .const import DEFAULT_PORT, DOMAIN
 from .coordinator import HealthCoordinator
 from .dashboard import async_offer_the_frontend
+from .phones import Phones
 from .station import IndoorStation
 
 PLATFORMS = [
@@ -113,6 +114,8 @@ async def async_setup_entry(
             translation_placeholders={"port": str(sip.PORT), "error": str(err)},
         ) from err
     entry.runtime_data = station
+    # The phones ring with the door station
+    entry.async_on_unload(await Phones(hass, station).async_start())
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 

@@ -11,8 +11,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import replace
 from datetime import datetime, timedelta
+import hashlib
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 from aiohikvision import CallError, CallState, DoorCall, DoorStation, DoorStationInfo
 from aiohikvision.isapi.wire.faults import BridgeFault
@@ -38,6 +39,17 @@ if TYPE_CHECKING:
 
     from .coordinator import HealthCoordinator
     from .sip import SipServer
+
+
+# A call is named outside Home Assistant by a digest of its SIP Call-ID: the phones'
+# notifications cross Apple's and Google's push services, and a Call-ID can carry the
+# door's address. 16 hex digits (64 bits) cannot be guessed while a call lasts.
+TOKEN_LENGTH: Final = 16
+
+
+def call_token(call_id: str) -> str:
+    """Return the name of a call outside Home Assistant."""
+    return hashlib.sha256(call_id.encode()).hexdigest()[:TOKEN_LENGTH]
 
 
 def wall_clock(monotonic: float | None) -> datetime | None:
@@ -155,6 +167,8 @@ class IndoorStation:
             if call is None
             else {
                 "id": call.id,
+                # How the phones' notifications name it (the panel answers by it)
+                "token": call_token(call.id),
                 "state": call.state.value,
                 "caller": call.caller,
                 "callee": call.callee,

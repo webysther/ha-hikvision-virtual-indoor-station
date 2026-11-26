@@ -83,3 +83,6 @@ CONF_DO_NOT_DISTURB: Final = "do_not_disturb"
 CONF_OPEN_DOOR: Final = "open_door"
 # The integration of the Home Assistant app on phones, whose devices are extensions.
 MOBILE_APP: Final = "mobile_app"
+# The path of the indoor station panel: a door station's card on a page of its own,
+# opened by the buttons of the phones' notifications (?entry=, call=, answer=1).
+PANEL_PATH: Final = "hikvision-indoor-station"

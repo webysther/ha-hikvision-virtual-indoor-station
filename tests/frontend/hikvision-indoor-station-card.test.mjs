@@ -4,8 +4,10 @@ import { describe, it } from "node:test";
 
 import {
   CARD,
+  PANEL,
   RING,
   Ringer,
+  answerFor,
   callMessage,
   callStateName,
   callStateOf,
@@ -20,6 +22,7 @@ import {
   keyName,
   locksOf,
   openDoorMessage,
+  panelTarget,
   screenLabel,
   screenOf,
   shortcutService,
@@ -418,5 +421,36 @@ describe("the keys under the screen", () => {
       keyName(homeAssistant(["front"]), deviceKeys({ state: "answered" })[1]),
       "hang_up",
     );
+  });
+});
+
+describe("the panel the phones open", () => {
+  it("is named as the integration registers it", () => {
+    assert.equal(PANEL, "hikvision-indoor-station-panel");
+  });
+
+  it("reads the door station, the call and whether to answer from its address", () => {
+    assert.deepEqual(panelTarget("?entry=e1&call=abc&answer=1"), {
+      entry: "e1",
+      call: "abc",
+      answer: true,
+    });
+    assert.deepEqual(panelTarget(""), { entry: null, call: null, answer: false });
+    assert.equal(panelTarget("?entry=e1&call=abc&answer=yes").answer, false);
+  });
+
+  it("answers the named call while it rings, and only that one", () => {
+    const named = (state) => ({
+      ...snapshot(state),
+      call: { ...snapshot(state).call, token: "t1" },
+    });
+    assert.equal(answerFor(null, "t1"), "wait");
+    assert.equal(answerFor(snapshot(null), "t1"), "wait");
+    // Another call: the named one may still come
+    assert.equal(answerFor(snapshot("ringing"), "t1"), "wait");
+    assert.equal(answerFor(named("ringing"), "t1"), "answer");
+    // Answered elsewhere, or over: nothing to answer
+    assert.equal(answerFor(named("answered"), "t1"), "forget");
+    assert.equal(answerFor(named("ended"), "t1"), "forget");
   });
 });

@@ -58,6 +58,15 @@ station.
   extensions (**Add phone** on its entry), each with its own do not disturb and
   whether it may open the door. Adding or changing one does not interrupt a
   call.
+- The phones ring with the door station: a notification with the door's
+  picture, delivered at once (time-sensitive on iOS, high priority on Android),
+  with **Answer**, **Open door** (on an unlocked iPhone) and **Reject**. Answer
+  opens the indoor station panel, which answers that call on the phone. The
+  buttons work only while their call lasts, and the
+  notification goes away when the call is answered elsewhere, missed or over.
+  The notifications name the call by a digest, never by its SIP Call-ID.
+- The indoor station panel: a door station's card on a page of its own, out of
+  the sidebar, opened by the notifications.
 - The indoor station dashboard (`custom:hikvision-indoor-station`, in **Add
   dashboard**): a view for each door station, named after it, with its card and
   its activity.

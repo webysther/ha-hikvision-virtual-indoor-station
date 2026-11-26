@@ -40,6 +40,7 @@ export { CARD };
  * @typedef {typeof TEXTS.en} Texts
  * @typedef {{
  *   id: string,
+ *   token?: string,
  *   state: "ringing" | "answered" | "ended",
  *   caller: string | null,
  *   callee: string | null,
@@ -74,6 +75,9 @@ export const STREAM_WAIT = 5000;
 
 /** Where the browser remembers that its ringer is muted (one choice per browser). */
 export const RING_MUTED_KEY = `${PLATFORM}.ring_muted`;
+
+/** The custom element of the indoor station panel (dashboard.py registers it). */
+export const PANEL = "hikvision-indoor-station-panel";
 
 /**
  * The ring of the browser: two tones, then a pause, again and again. Its own sound,
@@ -242,6 +246,35 @@ export function talkMessage(texts, reason) {
   if (reason === "stopped" || reason === "call_ended") return null;
   const known = /** @type {Record<string, string>} */ (texts);
   return known[reason] ?? texts.talk_failed;
+}
+
+/**
+ * Return what the panel was opened for, from its address: the door station (its entry),
+ * the call a phone's notification names (its token) and whether to answer it.
+ *
+ * @param {string} search The query of the address (`?entry=…&call=…&answer=1`).
+ */
+export function panelTarget(search) {
+  const query = new URLSearchParams(search);
+  return {
+    entry: query.get("entry"),
+    call: query.get("call"),
+    answer: query.get("answer") === "1",
+  };
+}
+
+/**
+ * Return what to do with the call a notification asked to answer: answer it while it
+ * rings, forget it once it no longer does, or wait for it to show.
+ *
+ * @param {Snapshot | null} snapshot
+ * @param {string} token
+ * @returns {"answer" | "forget" | "wait"}
+ */
+export function answerFor(snapshot, token) {
+  const call = snapshot?.call;
+  if (!call || call.token !== token) return "wait";
+  return call.state === "ringing" ? "answer" : "forget";
 }
 
 /**
@@ -692,6 +725,8 @@ if (typeof customElements !== "undefined") {
     #streamDefined = null;
     #ringMuted = ringMutedHere();
     #ringer = new Ringer();
+    /** @type {string | null} The call to answer once it rings here (from a notification). */
+    #answerToken = null;
     /** @type {Microphone | null} The talk in progress. */
     #microphone = null;
     /** @type {ReturnType<typeof setInterval> | null} Ticks the time of an answered call. */
@@ -756,6 +791,7 @@ if (typeof customElements !== "undefined") {
             // A new call ends the monitoring: its screen takes over
             if (callStateOf(snapshot) !== "idle") this.#monitoring = false;
             this.#snapshot = snapshot;
+            this.#answerIfAsked();
             this.#render();
           },
           { type: `${PLATFORM}/subscribe`, entry_id: entry },
@@ -1106,6 +1142,25 @@ if (typeof customElements !== "undefined") {
       extra.replaceChildren(...doors, ...shortcuts);
     }
 
+    /**
+     * Answer the call a phone's notification names, once it rings here: the panel its
+     * Answer button opens asks for it.
+     *
+     * @param {string} token
+     */
+    answerOnRing(token) {
+      this.#answerToken = token;
+      this.#answerIfAsked();
+    }
+
+    #answerIfAsked() {
+      if (!this.#answerToken) return;
+      const next = answerFor(this.#snapshot, this.#answerToken);
+      if (next === "wait") return;
+      this.#answerToken = null;
+      if (next === "answer") this.#press("answer");
+    }
+
     getCardSize() {
       return 7;
     }
@@ -1170,7 +1225,91 @@ if (typeof customElements !== "undefined") {
     }
   }
 
+  const PANEL_STYLE = `
+    :host { display: block; min-height: 100%; background: var(--primary-background-color); }
+    .toolbar { display: flex; align-items: center; gap: 12px; padding: 0 12px;
+      height: var(--header-height, 56px); font-size: 20px;
+      background: var(--app-header-background-color, var(--primary-color));
+      color: var(--app-header-text-color, var(--text-primary-color)); }
+    .content { max-width: 640px; margin: 0 auto; padding: 16px; }
+  `;
+
+  /**
+   * The indoor station panel: a door station's card on a page of its own, out of the
+   * sidebar. The phones' notifications open it (?entry=…&call=…, and answer=1 from
+   * their Answer button).
+   */
+  class IndoorStationPanel extends HTMLElement {
+    /** @type {Hass | undefined} */
+    #hass;
+    #narrow = false;
+    /** @type {{ card: any, menu: any, title: HTMLElement } | null} */
+    #parts = null;
+    /** What the card was last set to show and answer, from the address. */
+    #applied = "";
+
+    /** @param {Hass} hass */
+    set hass(hass) {
+      this.#hass = hass;
+      this.#render();
+    }
+
+    /** @param {boolean} narrow */
+    set narrow(narrow) {
+      this.#narrow = narrow;
+      this.#render();
+    }
+
+    /** The address changed: another call may be named. @param {unknown} _route */
+    set route(_route) {
+      this.#render();
+    }
+
+    connectedCallback() {
+      this.#render();
+    }
+
+    #build() {
+      const root = this.attachShadow({ mode: "open" });
+      const style = document.createElement("style");
+      style.textContent = PANEL_STYLE;
+      const toolbar = Object.assign(document.createElement("div"), { className: "toolbar" });
+      const menu = document.createElement("ha-menu-button");
+      const title = document.createElement("div");
+      toolbar.append(menu, title);
+      const content = Object.assign(document.createElement("div"), { className: "content" });
+      const card = document.createElement(CARD);
+      content.append(card);
+      root.replaceChildren(style, toolbar, content);
+      return { card, menu, title };
+    }
+
+    #render() {
+      const hass = this.#hass;
+      if (!hass || !this.isConnected) return;
+      const parts = (this.#parts ??= this.#build());
+      const target = panelTarget(window.location.search);
+      const stations = findStations(hass);
+      const station = stations.find((item) => item.entry_id === target.entry) ?? stations[0];
+      const applied = `${station?.device_id}|${target.call}|${target.answer}`;
+      if (applied !== this.#applied) {
+        this.#applied = applied;
+        parts.card.setConfig(
+          station
+            ? { type: `custom:${CARD}`, device_id: station.device_id }
+            : { type: `custom:${CARD}` },
+        );
+        if (target.answer && target.call) parts.card.answerOnRing(target.call);
+      }
+      parts.card.hass = hass;
+      parts.menu.hass = hass;
+      parts.menu.narrow = this.#narrow;
+      parts.title.textContent = station?.name ?? "Hikvision Virtual Indoor Station";
+    }
+  }
+
   customElements.get(CARD) || customElements.define(CARD, IndoorStationCard);
+  customElements.get(PANEL) || customElements.define(PANEL, IndoorStationPanel);
   customElements.get(`${CARD}-editor`) ||
     customElements.define(`${CARD}-editor`, IndoorStationCardEditor);
 
