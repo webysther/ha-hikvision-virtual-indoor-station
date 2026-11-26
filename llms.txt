@@ -25,7 +25,7 @@ This file is an overview for language models. The README is the user guide; AGEN
 
 ## Card, dashboard and panel
 
-- Card `custom:hikvision-indoor-station-card`, keys `device_id`, `talk_mode` (`hold` or `toggle`), `shortcuts` (entities, or `{entity, name, icon}`), `show_name` (false: icons only). A standard card laid out like an indoor station: the camera, then one row of keys (Answer, Hang up or Reject, Monitor, Push to talk, the ringer) with a key per door that opens and the shortcuts on its right.
+- Card `custom:hikvision-indoor-station-card`, keys `device_id`, `talk_mode` (`hold` or `toggle`), `shortcuts` (entities, or `{entity, name, icon}`), `show_name` (false: icons only), `show_state` (false: no name and call state over the camera). A standard card laid out like an indoor station: the camera, then one row of keys (Answer, Hang up or Reject, Monitor, Push to talk, the ringer) with a key per door that opens and the shortcuts on its right.
 - Dashboard strategy `custom:hikvision-indoor-station`: one view per door station, with its card and activity.
 - Panel `/hikvision-indoor-station?entry=<entry_id>&call=<token>&answer=1`, out of the sidebar: a door station's card on its own page, opened by the phones' notifications.
 

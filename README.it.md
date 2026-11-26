@@ -146,7 +146,8 @@ installare.
   di qualsiasi plancia, con un editor visuale. È disegnata come lo schermo di un
   posto interno:
   - la telecamera della porta, dal vivo mentre la porta suona, durante una
-    chiamata o mentre monitori, e la sua foto per il resto del tempo;
+    chiamata o mentre monitori, e la sua foto per il resto del tempo; sopra, il
+    nome del citofono e lo stato della chiamata, quando ce n'è una;
   - **Rispondi** e **Rifiuta** mentre la porta suona, **Riaggancia** dopo aver
     risposto, **Monitora** a riposo, e **Silenzia suoneria** per questo browser;
   - **Premi per parlare**: tienilo premuto (o la barra spaziatrice con il
@@ -170,6 +171,8 @@ shortcuts:
     icon: mdi:hand-wave
 # false: i tasti mostrano solo le icone
 show_name: true
+# false: niente nome né stato della chiamata sopra la telecamera
+show_state: true
 ```
 
 I browser trattengono il suono di una pagina finché non la si tocca: la scheda

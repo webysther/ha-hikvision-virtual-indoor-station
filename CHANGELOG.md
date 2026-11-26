@@ -13,6 +13,8 @@ station.
 
 - A door station is added by its address and an account; a refused account asks
   to sign in again, and the address or account can be changed (Reconfigure).
+  A wrong password does not lock the account: once the door station says two
+  attempts or fewer remain, Home Assistant stops trying and asks you to sign in.
 - A SIP server for the door stations, shared by every entry: their VoIP line
   registers with Home Assistant and calls it.
 - The doorbell event (`ring`, `answered`, `rejected`, `missed`, `ended`, with the
@@ -44,7 +46,8 @@ station.
   or while monitoring, and shows its picture otherwise; the door's sound plays
   once answered or monitored. A key for each door that opens and the shortcuts
   sit on the right of the same row (a door whose output does not drive a lock
-  has none), and `show_name: false` leaves the keys with their icons only. A
+  has none), `show_name: false` leaves the keys with their icons only, and
+  `show_state: false` takes the name and the state off the camera. A
   warning shows when the door station is not registered.
 - Push-to-talk on the card: hold the button (or the space bar on it), or press
   it once to talk and once to stop (`talk_mode: toggle`). Your voice goes with

@@ -97,6 +97,11 @@ describe("configuration", () => {
       show_name: false,
     });
     assert.throws(() => checkConfig({ type: CARD, show_name: "no" }));
+    assert.deepEqual(checkConfig({ type: CARD, show_state: false }), {
+      type: CARD,
+      show_state: false,
+    });
+    assert.throws(() => checkConfig({ type: CARD, show_state: 0 }));
   });
 
   it("of a new card is the first door station", () => {
@@ -328,6 +333,7 @@ describe("the editor", () => {
       talk_mode: "hold",
       shortcuts: ["light.porch", "scene.welcome"],
       show_name: true,
+      show_state: true,
     });
     // The names given in YAML stay; the default way to talk is left out
     assert.deepEqual(
@@ -353,15 +359,24 @@ describe("the editor", () => {
     });
     assert.deepEqual(configFromEditor({ type: CARD }, { show_name: true }), { type: CARD });
     assert.equal(editorData({ type: CARD, show_name: false }).show_name, false);
+    // So is the band on the screen (the door station's name and the state of the call)
+    assert.deepEqual(configFromEditor({ type: CARD }, { show_state: false }), {
+      type: CARD,
+      show_state: false,
+    });
+    assert.deepEqual(configFromEditor({ type: CARD }, { show_state: true }), { type: CARD });
+    assert.equal(editorData({ type: CARD, show_state: false }).show_state, false);
   });
 
   it("offers only the door stations of the integration, in the language of the user", () => {
     const schema = editorSchema({ ...homeAssistant(["front"]), language: "pt-BR" });
     assert.deepEqual(
       schema.map((field) => field.name),
-      ["device_id", "talk_mode", "shortcuts", "show_name"],
+      ["device_id", "talk_mode", "shortcuts", "show_name", "show_state"],
     );
     assert.equal(schema[3].label, "Mostrar nome");
+    assert.equal(schema[4].label, "Mostrar estado");
+    assert.deepEqual(schema[4].selector, { boolean: {} });
     assert.deepEqual(schema[3].selector, { boolean: {} });
     assert.deepEqual(schema[0].selector.device.filter, {
       integration: "hikvision_virtual_indoor_station",

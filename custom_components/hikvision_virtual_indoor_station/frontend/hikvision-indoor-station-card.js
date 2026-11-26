@@ -61,10 +61,12 @@ export { CARD };
  * @typedef {{ entity: string, name?: string, icon?: string }} Shortcut A button of the card
  *   for another entity: a light, a scene, another door.
  * @typedef {{ type: string, device_id?: string, talk_mode?: TalkMode,
- *   shortcuts?: Array<string | Shortcut>, show_name?: boolean }} CardConfig
- * @typedef {{ media: HTMLElement, name: HTMLElement, state: HTMLElement, warning: HTMLElement,
- *   keys: HTMLElement, extra: HTMLElement, buttons: Map<KeyName, HTMLButtonElement> }} Parts
- *   The parts of the card: the screen, the keys under it, the doors and shortcuts.
+ *   shortcuts?: Array<string | Shortcut>, show_name?: boolean, show_state?: boolean }} CardConfig
+ * @typedef {{ media: HTMLElement, overlay: HTMLElement, name: HTMLElement, state: HTMLElement,
+ *   warning: HTMLElement, keys: HTMLElement, extra: HTMLElement,
+ *   buttons: Map<KeyName, HTMLButtonElement> }} Parts
+ *   The parts of the card: the screen with the band on top of it (the name of the door
+ *   station and the state of the call), the keys under it, the doors and shortcuts.
  */
 
 /** The action of the websocket command `call` for each button of the call. */
@@ -367,8 +369,10 @@ export function checkConfig(config) {
   if (config.talk_mode !== undefined && !["hold", "toggle"].includes(config.talk_mode)) {
     throw new Error("talk_mode must be hold or toggle");
   }
-  if (config.show_name !== undefined && typeof config.show_name !== "boolean") {
-    throw new Error("show_name must be true or false");
+  for (const option of ["show_name", "show_state"]) {
+    if (config[option] !== undefined && typeof config[option] !== "boolean") {
+      throw new Error(`${option} must be true or false`);
+    }
   }
   if (config.shortcuts !== undefined) {
     const valid = (/** @type {any} */ item) =>
@@ -459,6 +463,7 @@ export function editorData(config) {
     talk_mode: config.talk_mode ?? "hold",
     shortcuts: shortcutsOf(config).map((shortcut) => shortcut.entity),
     show_name: config.show_name ?? true,
+    show_state: config.show_state ?? true,
   };
 }
 
@@ -468,7 +473,7 @@ export function editorData(config) {
  *
  * @param {CardConfig} config
  * @param {{ device_id?: string, talk_mode?: TalkMode, shortcuts?: string[],
- *   show_name?: boolean }} value
+ *   show_name?: boolean, show_state?: boolean }} value
  * @returns {CardConfig}
  */
 export function configFromEditor(config, value) {
@@ -483,12 +488,13 @@ export function configFromEditor(config, value) {
   });
   if (shortcuts.length) result.shortcuts = shortcuts;
   if (value.show_name === false) result.show_name = false;
+  if (value.show_state === false) result.show_state = false;
   return result;
 }
 
 /**
- * Return the form of the editor: the door station, the way to talk, the shortcuts, and
- * whether the keys show their names.
+ * Return the form of the editor: the door station, the way to talk, the shortcuts, whether
+ * the keys show their names, and whether the screen shows its band (name and state).
  *
  * @param {Hass} hass
  */
@@ -515,6 +521,7 @@ export function editorSchema(hass) {
     },
     { name: "shortcuts", label: texts.editor_shortcuts, selector: { entity: { multiple: true } } },
     { name: "show_name", label: texts.editor_show_name, selector: { boolean: {} } },
+    { name: "show_state", label: texts.editor_show_state, selector: { boolean: {} } },
   ];
 }
 
@@ -604,6 +611,7 @@ if (typeof customElements !== "undefined") {
   // takes the colors of the theme.
   const STYLE = `
     ha-card { overflow: hidden; }
+    [hidden] { display: none !important; }
     .screen { position: relative; aspect-ratio: 16 / 9; background: #000; }
     .media, .media > * { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
     .overlay { position: absolute; inset: 0 0 auto 0; display: flex; align-items: center;
@@ -929,10 +937,10 @@ if (typeof customElements !== "undefined") {
       const part = (tag, className) => Object.assign(document.createElement(tag), { className });
       const card = document.createElement("ha-card");
       const screen = part("div", "screen");
-      const overlay = part("div", "overlay");
       /** @type {Parts} */
       const parts = {
         media: part("div", "media"),
+        overlay: part("div", "overlay"),
         name: part("div", "name"),
         state: part("div", "chip"),
         warning: part("div", "warning"),
@@ -940,8 +948,8 @@ if (typeof customElements !== "undefined") {
         extra: part("div", "extra"),
         buttons: new Map(),
       };
-      overlay.append(parts.name, parts.state);
-      screen.append(parts.media, overlay, parts.warning);
+      parts.overlay.append(parts.name, parts.state);
+      screen.append(parts.media, parts.overlay, parts.warning);
       card.append(screen, parts.keys);
       root.replaceChildren(style, card);
       for (const name of /** @type {KeyName[]} */ ([
@@ -1022,6 +1030,7 @@ if (typeof customElements !== "undefined") {
       if (talking && !talkable) this.#stopTalk();
       parts.keys.hidden = false;
       parts.keys.classList.toggle("no-names", this.#config.show_name === false);
+      parts.overlay.hidden = this.#config.show_state === false;
       parts.name.textContent = station.name;
       const label = screenLabel(hass, state, {
         monitoring: this.#monitoring,

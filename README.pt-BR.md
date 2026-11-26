@@ -141,7 +141,8 @@ instalar.
   qualquer dashboard, com editor visual. Ele tem a cara da tela de um monitor
   interno:
   - a câmera da porta, ao vivo enquanto a porta toca, durante uma chamada ou
-    enquanto você monitora, e a foto dela no resto do tempo;
+    enquanto você monitora, e a foto dela no resto do tempo; em cima dela, o
+    nome do porteiro e o estado da chamada, quando há uma;
   - **Atender** e **Recusar** enquanto a porta toca, **Desligar** depois de
     atender, **Monitorar** com a porta livre, e **Silenciar campainha** neste
     navegador;
@@ -166,6 +167,8 @@ shortcuts:
     icon: mdi:hand-wave
 # false: as teclas mostram só os ícones
 show_name: true
+# false: sem o nome e o estado da chamada em cima da câmera
+show_state: true
 ```
 
 Os navegadores seguram o som de uma página até alguém tocar nela: o card pede um

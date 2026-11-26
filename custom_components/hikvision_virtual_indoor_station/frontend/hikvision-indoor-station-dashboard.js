@@ -162,6 +162,7 @@ export const TEXTS = {
     talk_toggle: "Press to talk, press again to stop",
     editor_shortcuts: "Shortcuts (lights, scenes, other doors…)",
     editor_show_name: "Show name",
+    editor_show_state: "Show state",
   },
   it: {
     description: "Il posto interno di un citofono Hikvision: rispondi, parla, apri la porta.",
@@ -190,6 +191,7 @@ export const TEXTS = {
     talk_toggle: "Premi per parlare, premi di nuovo per smettere",
     editor_shortcuts: "Scorciatoie (luci, scene, altre porte…)",
     editor_show_name: "Mostra il nome",
+    editor_show_state: "Mostra lo stato",
   },
   "pt-BR": {
     description: "O monitor interno de um porteiro Hikvision: atender, falar, abrir a porta.",
@@ -218,6 +220,7 @@ export const TEXTS = {
     talk_toggle: "Apertar para falar, apertar de novo para parar",
     editor_shortcuts: "Atalhos (luzes, cenas, outras portas…)",
     editor_show_name: "Mostrar nome",
+    editor_show_state: "Mostrar estado",
   },
 };
 

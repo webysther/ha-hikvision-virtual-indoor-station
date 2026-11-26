@@ -141,7 +141,8 @@ install.
   dashboard, with a visual editor. It is laid out like the screen of an indoor
   station:
   - the door's camera, live while the door rings, during a call or while you
-    monitor, and its picture otherwise;
+    monitor, and its picture otherwise; on top of it, the name of the door
+    station and the state of the call while there is one;
   - **Answer** and **Reject** while the door rings, **Hang up** once answered,
     **Monitor** while idle, and **Mute ringer** for this browser;
   - **Push to talk**: hold it (or the space bar on it). Your voice goes with the
@@ -165,6 +166,8 @@ shortcuts:
     icon: mdi:hand-wave
 # false: the keys show their icons only
 show_name: true
+# false: no name and no call state on top of the camera
+show_state: true
 ```
 
 Browsers hold the sound of a page until it is tapped: the card asks for a tap
