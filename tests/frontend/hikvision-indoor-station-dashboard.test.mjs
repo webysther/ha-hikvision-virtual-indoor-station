@@ -10,6 +10,7 @@ import {
   stationOf,
   textsIn,
   translated,
+  viewPath,
   withTexts,
 } from "../../custom_components/hikvision_virtual_indoor_station/frontend/hikvision-indoor-station-dashboard.js";
 import { STATIONS, homeAssistant } from "./fixtures.mjs";
@@ -85,12 +86,25 @@ describe("texts", () => {
   });
 });
 
+describe("viewPath", () => {
+  it("comes from the name, without accents, unique among the views", () => {
+    const taken = new Set();
+    assert.equal(viewPath("Portão da Frente", taken), "portao-da-frente");
+    assert.equal(viewPath("Portão da frente!", taken), "portao-da-frente-2");
+    assert.equal(viewPath("***", taken), "door-station");
+  });
+});
+
 describe("generateDashboard", () => {
   it("has a view for each door station: the card and its activity", () => {
     const { views } = generateDashboard(homeAssistant(["front", "back"]));
     assert.deepEqual(
       views.map((view) => view.title),
       ["Back gate", "Front door"],
+    );
+    assert.deepEqual(
+      views.map((view) => view.path),
+      ["back-gate", "front-door"],
     );
     const [card, activity] = views[1].sections;
     assert.deepEqual(card.cards, [{ type: `custom:${CARD}`, device_id: STATIONS.front.device }]);

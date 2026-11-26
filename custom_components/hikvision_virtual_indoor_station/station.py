@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 
 from aiohikvision import CallError, CallState, DoorCall, DoorStation, DoorStationInfo
 from aiohikvision.isapi.wire.faults import BridgeFault
-from homeassistant.const import CONF_HOST, CONF_PORT
+from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import issue_registry as ir
@@ -26,7 +26,6 @@ from .const import (
     CALL_ANSWERED,
     CALL_IDLE,
     CALL_RINGING,
-    DEFAULT_PORT,
     DOMAIN,
     SIP_KEEPALIVE_TIMEOUT,
     SIP_UNHEARD_GRACE,
@@ -85,7 +84,6 @@ class IndoorStation:
         """The door station as a device."""
         identity = self.info.identity
         host = self.entry.data[CONF_HOST]
-        port = self.entry.data.get(CONF_PORT, DEFAULT_PORT)
         return DeviceInfo(
             identifiers={(DOMAIN, self.unique_id)},
             connections={(CONNECTION_NETWORK_MAC, identity.mac)}
@@ -99,9 +97,9 @@ class IndoorStation:
                 part for part in (identity.firmware, identity.firmware_build) if part
             ),
             hw_version=identity.hardware,
-            configuration_url=f"http://{host}"
-            if port == DEFAULT_PORT
-            else f"http://{host}:{port}",
+            # Its web page over HTTPS, on the standard port whatever port ISAPI is
+            # reached on: the account is typed into it
+            configuration_url=f"https://{host}",
         )
 
     # ------------------------------------------------------------ state

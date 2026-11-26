@@ -6,18 +6,18 @@ import {
   CARD,
   RING,
   Ringer,
-  actionName,
   callMessage,
   callStateName,
   callStateOf,
   checkConfig,
   configFromEditor,
   doorName,
+  deviceKeys,
   doorsOf,
   editorData,
   editorSchema,
   elapsed,
-  mainActions,
+  keyName,
   openDoorMessage,
   screenOf,
   shortcutService,
@@ -70,51 +70,6 @@ describe("configuration", () => {
       device_id: STATIONS.back.device,
     });
     assert.deepEqual(stubConfig(homeAssistant([])), { type: `custom:${CARD}` });
-  });
-});
-
-describe("the main row", () => {
-  const keys = (state, monitoring = false) =>
-    mainActions(state, monitoring).map((action) => action.key);
-
-  it("answers or refuses a ringing call, hangs up an answered one, monitors otherwise", () => {
-    assert.deepEqual(keys("ringing"), ["answer", "reject", "ring"]);
-    assert.deepEqual(keys("answered"), ["hang_up"]);
-    assert.deepEqual(keys("idle"), ["monitor", "ring"]);
-    assert.deepEqual(
-      mainActions("ringing", false).map((action) => action.tone),
-      ["accept", "decline", "neutral"],
-    );
-    assert.equal(mainActions("idle", true)[0].active, true);
-  });
-
-  it("names the buttons as the integration does, and the monitoring with the texts of the card", () => {
-    const hass = {
-      ...homeAssistant(["front"], {
-        "component.hikvision_virtual_indoor_station.entity.button.answer.name": "Atender",
-      }),
-      language: "pt-BR",
-    };
-    assert.equal(actionName(hass, mainActions("ringing", false)[0]), "Atender");
-    assert.equal(actionName(hass, mainActions("idle", false)[0]), "Monitorar");
-    assert.equal(actionName(hass, mainActions("idle", true)[0]), "Parar");
-    // Before the texts are loaded
-    assert.equal(
-      actionName(homeAssistant(["front"]), mainActions("answered", false)[0]),
-      "hang_up",
-    );
-  });
-
-  it("names the call it acts on", () => {
-    const call = snapshot("ringing").call;
-    assert.deepEqual(callMessage("entry_front", call, "answer"), {
-      type: "hikvision_virtual_indoor_station/call",
-      entry_id: "entry_front",
-      call_id: "call-1",
-      action: "answer",
-    });
-    assert.equal(callMessage("entry_front", call, "hang_up").action, "hangup");
-    assert.equal(callMessage("entry_front", call, "reject").action, "reject");
   });
 });
 
@@ -256,19 +211,6 @@ describe("the ringer", () => {
   });
 });
 
-describe("the ringer button", () => {
-  it("mutes the ringer of this browser, and says how to ring again", () => {
-    const hass = { ...homeAssistant(["front"]), language: "pt-BR" };
-    const [, , ring] = mainActions("ringing", false, false);
-    assert.equal(ring.key, "ring");
-    assert.equal(actionName(hass, ring), "Silenciar campainha");
-    const muted = mainActions("idle", false, true)[1];
-    assert.equal(muted.active, true);
-    assert.equal(muted.icon, "mdi:bell-off");
-    assert.equal(actionName(hass, muted), "Campainha");
-  });
-});
-
 describe("the shortcuts", () => {
   const hass = {
     ...homeAssistant(["front"]),
@@ -372,6 +314,77 @@ describe("the editor", () => {
     assert.deepEqual(
       schema[1].selector.select.options.map((option) => option.value),
       ["hold", "toggle"],
+    );
+  });
+});
+
+describe("the keys under the screen", () => {
+  const keys = (now) => deviceKeys(now).map((key) => [key.key, key.enabled]);
+
+  it("are always the same, lit when the state allows them", () => {
+    assert.deepEqual(keys({ state: "idle" }), [
+      ["answer", false],
+      ["hang_up", false],
+      ["monitor", true],
+      ["talk", false],
+      ["ring", true],
+    ]);
+    // Hang up refuses a call that rings
+    assert.deepEqual(keys({ state: "ringing" }).slice(0, 3), [
+      ["answer", true],
+      ["reject", true],
+      ["monitor", false],
+    ]);
+    assert.deepEqual(keys({ state: "answered", talkable: true }).slice(0, 4), [
+      ["answer", false],
+      ["hang_up", true],
+      ["monitor", false],
+      ["talk", true],
+    ]);
+  });
+
+  it("answer in green, hang up in red", () => {
+    const [answer, hangUp, monitor] = deviceKeys({ state: "ringing" });
+    assert.equal(answer.tone, "accept");
+    assert.equal(hangUp.tone, "decline");
+    assert.equal(monitor.tone, "plain");
+  });
+
+  it("show what is on: the monitoring, the talk, the muted ringer", () => {
+    const [, , monitor, talk, ring] = deviceKeys({
+      state: "idle",
+      monitoring: true,
+      talking: true,
+      ringMuted: true,
+    });
+    assert.deepEqual([monitor.active, monitor.icon], [true, "mdi:video-off-outline"]);
+    assert.deepEqual([talk.active, talk.icon], [true, "mdi:microphone"]);
+    assert.deepEqual([ring.active, ring.icon], [true, "mdi:volume-off"]);
+  });
+
+  it("are named as the integration's buttons, and by the texts of the card", () => {
+    const hass = {
+      ...homeAssistant(["front"], {
+        "component.hikvision_virtual_indoor_station.entity.button.answer.name": "Atender",
+        "component.hikvision_virtual_indoor_station.entity.button.reject.name": "Recusar",
+      }),
+      language: "pt-BR",
+    };
+    const [answer, reject, monitor, talk, ring] = deviceKeys({ state: "ringing" });
+    assert.equal(keyName(hass, answer), "Atender");
+    assert.equal(keyName(hass, reject), "Recusar");
+    assert.equal(keyName(hass, monitor), "Monitorar");
+    assert.equal(keyName(hass, talk), "Aperte para falar");
+    assert.equal(keyName(hass, ring), "Silenciar campainha");
+    const on = deviceKeys({ state: "idle", monitoring: true, talking: true, ringMuted: true });
+    assert.deepEqual(
+      on.slice(2).map((key) => keyName(hass, key)),
+      ["Parar", "Falando…", "Campainha"],
+    );
+    // Before the texts are loaded
+    assert.equal(
+      keyName(homeAssistant(["front"]), deviceKeys({ state: "answered" })[1]),
+      "hang_up",
     );
   });
 });

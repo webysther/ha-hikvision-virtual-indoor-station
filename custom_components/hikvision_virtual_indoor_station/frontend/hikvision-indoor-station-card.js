@@ -51,19 +51,18 @@ export { CARD };
  * @typedef {{ registered: boolean, doors: number[], speaker: boolean, call: Call | null }} Snapshot
  *   The state of a door station, as `subscribe` gives it (IndoorStation.snapshot).
  * @typedef {"idle" | "ringing" | "answered"} CallState The states of the call sensor.
- * @typedef {"answer" | "reject" | "hang_up" | "monitor" | "ring"} ActionKey
- * @typedef {{ key: ActionKey, icon: string, tone: "accept" | "decline" | "neutral", active?: boolean }} Action
- *   A button of the main row.
+ * @typedef {"answer" | "reject" | "hang_up" | "monitor" | "talk" | "ring"} KeyName
+ * @typedef {{ key: KeyName, icon: string, tone: "accept" | "decline" | "plain", enabled: boolean,
+ *   active: boolean }} Key A key under the screen.
  * @typedef {"hold" | "toggle"} TalkMode Push-to-talk: talk while the button is held, or
  *   from one press to the next.
  * @typedef {{ entity: string, name?: string, icon?: string }} Shortcut A button of the card
  *   for another entity: a light, a scene, another door.
  * @typedef {{ type: string, device_id?: string, talk_mode?: TalkMode,
  *   shortcuts?: Array<string | Shortcut> }} CardConfig
- * @typedef {{ card: HTMLElement, screen: HTMLElement, name: HTMLElement, state: HTMLElement,
- *   warning: HTMLElement, actions: HTMLElement, talk: HTMLElement, doors: HTMLElement,
- *   shortcuts: HTMLElement }} Parts
- *   The parts of the card.
+ * @typedef {{ media: HTMLElement, name: HTMLElement, state: HTMLElement, warning: HTMLElement,
+ *   keys: HTMLElement, extra: HTMLElement, buttons: Map<KeyName, HTMLButtonElement> }} Parts
+ *   The parts of the card: the screen, the keys under it, the doors and shortcuts.
  */
 
 /** The action of the websocket command `call` for each button of the call. */
@@ -117,52 +116,73 @@ export function elapsed(since, now) {
 }
 
 /**
- * Return the buttons of the main row: those the state of the call allows.
+ * Return the keys under the screen, as on an indoor station: always the same ones in the
+ * same places, lit when the state allows them. Answer is green and hang up red; hang up
+ * refuses a call that rings, and ends one that is answered.
  *
- * @param {CallState} state
- * @param {boolean} monitoring
- * @param {boolean} [ringMuted] Whether the ringer of this browser is muted.
- * @returns {Action[]}
+ * @param {{ state: CallState, monitoring?: boolean, ringMuted?: boolean, talkable?: boolean,
+ *   talking?: boolean }} now
+ * @returns {Key[]}
  */
-export function mainActions(state, monitoring, ringMuted = false) {
-  /** @type {Action} */
-  const ring = {
-    key: "ring",
-    icon: ringMuted ? "mdi:bell-off" : "mdi:bell",
-    tone: "neutral",
-    active: ringMuted,
-  };
-  if (state === "ringing") {
-    return [
-      { key: "answer", icon: "mdi:phone", tone: "accept" },
-      { key: "reject", icon: "mdi:phone-cancel", tone: "decline" },
-      ring,
-    ];
-  }
-  if (state === "answered") return [{ key: "hang_up", icon: "mdi:phone-hangup", tone: "decline" }];
+export function deviceKeys({
+  state,
+  monitoring = false,
+  ringMuted = false,
+  talkable = false,
+  talking = false,
+}) {
   return [
     {
+      key: "answer",
+      icon: "mdi:phone",
+      tone: "accept",
+      enabled: state === "ringing",
+      active: false,
+    },
+    {
+      key: state === "ringing" ? "reject" : "hang_up",
+      icon: "mdi:phone-hangup",
+      tone: "decline",
+      enabled: state !== "idle",
+      active: false,
+    },
+    {
       key: "monitor",
-      icon: monitoring ? "mdi:monitor-off" : "mdi:monitor-eye",
-      tone: "neutral",
+      icon: monitoring ? "mdi:video-off-outline" : "mdi:video-outline",
+      tone: "plain",
+      enabled: state === "idle",
       active: monitoring,
     },
-    ring,
+    {
+      key: "talk",
+      icon: talking ? "mdi:microphone" : "mdi:microphone-outline",
+      tone: "plain",
+      enabled: talkable,
+      active: talking,
+    },
+    {
+      key: "ring",
+      icon: ringMuted ? "mdi:volume-off" : "mdi:volume-high",
+      tone: "plain",
+      enabled: true,
+      active: ringMuted,
+    },
   ];
 }
 
 /**
- * Return the name of a button of the main row in the language of the user: the names
- * of the buttons of the integration, and the texts of the card for the others.
+ * Return the name of a key in the language of the user: the names of the buttons of the
+ * integration for the call, the texts of the card for the others.
  *
  * @param {Hass} hass
- * @param {Action} action
+ * @param {Key} key
  */
-export function actionName(hass, action) {
+export function keyName(hass, key) {
   const texts = textsIn(hass.language);
-  if (action.key === "monitor") return action.active ? texts.stop_monitor : texts.monitor;
-  if (action.key === "ring") return action.active ? texts.unmute_ring : texts.mute_ring;
-  return translated(hass, `entity.button.${action.key}.name`) ?? action.key;
+  if (key.key === "monitor") return key.active ? texts.stop_monitor : texts.monitor;
+  if (key.key === "talk") return key.active ? texts.talking : texts.talk;
+  if (key.key === "ring") return key.active ? texts.unmute_ring : texts.mute_ring;
+  return translated(hass, `entity.button.${key.key}.name`) ?? key.key;
 }
 
 /**
@@ -491,29 +511,48 @@ export class Ringer {
 }
 
 if (typeof customElements !== "undefined") {
+  // The look of the indoor station the card copies (a DS-KH6110-WE1): a dark bezel, the
+  // screen, and a row of keys under it, green to answer and red to hang up. Its own
+  // colors, whatever the theme, as the device has.
   const STYLE = `
-    ha-card { overflow: hidden; }
-    .screen { position: relative; aspect-ratio: 16 / 9; background: #000; }
-    .screen > * { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    .header { display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 16px 4px; gap: 8px; }
-    .name { font-size: 1.2em; font-weight: 500; }
-    .state { color: var(--secondary-text-color); font-variant-numeric: tabular-nums; }
-    .state.ringing { color: var(--success-color, #43a047); font-weight: 500; }
-    .state.answered { color: var(--primary-color); font-weight: 500; }
-    .warning { padding: 4px 16px; color: var(--warning-color, #ffa600); }
-    .row { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px 16px; justify-content: center; }
-    .row:empty { display: none; }
-    button { flex: 1 1 0; min-width: 96px; min-height: 56px; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 4px; border: none; border-radius: 12px;
-      font: inherit; cursor: pointer; color: var(--primary-text-color);
-      background: var(--secondary-background-color, #e0e0e0); }
-    button:disabled { opacity: 0.5; cursor: default; }
-    button.accept { background: var(--success-color, #43a047); color: #fff; }
-    button.decline { background: var(--error-color, #db4437); color: #fff; }
-    button.active { background: var(--primary-color); color: var(--text-primary-color, #fff); }
-    .talk button { min-height: 72px; touch-action: none; user-select: none; -webkit-user-select: none; }
-    .doors { border-top: 1px solid var(--divider-color); }
+    ha-card { background: none; border: none; box-shadow: none; overflow: visible; }
+    .device { color: #e6e6e6; border-radius: 28px; padding: 14px 14px 8px;
+      background: linear-gradient(160deg, #313131 0%, #161616 55%, #0b0b0b 100%);
+      border: 1px solid #3a3a3a;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+    .screen { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: 12px;
+      overflow: hidden; border: 2px solid #050505; }
+    .media, .media > * { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .overlay { position: absolute; inset: 0 0 auto 0; display: flex; align-items: center;
+      justify-content: space-between; gap: 8px; padding: 8px 12px; font-size: 14px;
+      background: linear-gradient(rgba(0, 0, 0, 0.7), transparent); pointer-events: none; }
+    .name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chip { padding: 2px 10px; border-radius: 999px; white-space: nowrap;
+      background: rgba(255, 255, 255, 0.14); font-variant-numeric: tabular-nums; }
+    .chip.ringing { background: #2e9e3a; color: #fff; animation: pulse 1s ease-in-out infinite; }
+    .chip.answered { background: #1e78d6; color: #fff; }
+    .warning { position: absolute; inset: auto 0 0 0; padding: 6px 12px; font-size: 13px;
+      background: rgba(0, 0, 0, 0.75); color: #ffb300; }
+    .keys { display: flex; justify-content: space-around; align-items: flex-start; gap: 2px;
+      padding: 10px 0 2px; }
+    .keys.extra { flex-wrap: wrap; justify-content: center; border-top: 1px solid #2a2a2a;
+      margin-top: 6px; }
+    .keys:empty { display: none; }
+    .key { flex: 1 1 0; min-width: 56px; max-width: 96px; display: flex; flex-direction: column;
+      align-items: center; gap: 4px; padding: 6px 2px; border: none; border-radius: 14px;
+      background: none; color: #e6e6e6; font: inherit; font-size: 11px; cursor: pointer;
+      -webkit-tap-highlight-color: transparent; }
+    .key ha-icon { --mdc-icon-size: 30px; }
+    .key .caption { color: #9a9a9a; line-height: 1.2; text-align: center; }
+    .key:hover:not(:disabled), .key:focus-visible { background: rgba(255, 255, 255, 0.07); outline: none; }
+    .key:disabled { opacity: 0.28; cursor: default; }
+    .key.accept { color: #3fd14a; }
+    .key.decline { color: #f2453b; }
+    .key.active { color: #4fc3f7; }
+    .key.active .caption { color: #4fc3f7; }
+    .key.talk { touch-action: none; user-select: none; -webkit-user-select: none; }
+    .key.talk.active { background: rgba(79, 195, 247, 0.12); }
+    @keyframes pulse { 50% { opacity: 0.6; } }
   `;
 
   /**
@@ -568,6 +607,36 @@ if (typeof customElements !== "undefined") {
     }
   }
 
+  /**
+   * Return a key: its icon over its caption.
+   *
+   * @param {string} className
+   */
+  function keyElement(className) {
+    const button = document.createElement("button");
+    button.className = className;
+    const caption = document.createElement("span");
+    caption.className = "caption";
+    button.append(document.createElement("ha-icon"), caption);
+    return button;
+  }
+
+  /**
+   * Show a key: its icon, its caption, and whether it can be pressed.
+   *
+   * @param {HTMLButtonElement} button
+   * @param {{ icon: string, name: string, className: string, enabled: boolean }} look
+   */
+  function showKey(button, look) {
+    button.className = look.className;
+    button.disabled = !look.enabled;
+    button.title = look.name;
+    button.setAttribute("aria-label", look.name);
+    button.querySelector("ha-icon")?.setAttribute("icon", look.icon);
+    const caption = button.querySelector(".caption");
+    if (caption && caption.textContent !== look.name) caption.textContent = look.name;
+  }
+
   class IndoorStationCard extends HTMLElement {
     /** @type {CardConfig | undefined} */
     #config;
@@ -585,7 +654,7 @@ if (typeof customElements !== "undefined") {
     #localize;
     /** Whether someone monitors the door outside a call. */
     #monitoring = false;
-    /** @type {string | null} The command waiting for its answer: its buttons are disabled. */
+    /** @type {string | null} The command waiting for its answer: its keys are disabled. */
     #busy = null;
     /** @type {Parts | null} */
     #parts = null;
@@ -698,7 +767,7 @@ if (typeof customElements !== "undefined") {
     }
 
     /**
-     * Send a command, its buttons disabled until it is answered; a refusal is shown.
+     * Send a command, its keys disabled until it is answered; a refusal is shown.
      *
      * @param {string} key
      * @param {Record<string, any>} message
@@ -717,19 +786,19 @@ if (typeof customElements !== "undefined") {
       }
     }
 
-    /** @param {Action} action */
-    #press(action) {
+    /** @param {KeyName} key */
+    #press(key) {
       const entry = this.#station?.entry_id;
       const call = this.#snapshot?.call;
-      if (action.key === "monitor") {
+      if (key === "monitor") {
         this.#monitoring = !this.#monitoring;
         this.#render();
-      } else if (action.key === "ring") {
+      } else if (key === "ring") {
         this.#ringMuted = !this.#ringMuted;
         rememberRingMuted(this.#ringMuted);
         this.#render();
-      } else if (entry && call) {
-        this.#send(action.key, callMessage(entry, call, action.key));
+      } else if ((key === "answer" || key === "reject" || key === "hang_up") && entry && call) {
+        this.#send(key, callMessage(entry, call, key));
       }
     }
 
@@ -763,7 +832,7 @@ if (typeof customElements !== "undefined") {
       microphone.stop();
     }
 
-    /** Build the parts of the card once: the screen keeps its stream across renders. */
+    /** Build the device once: the screen keeps its stream and the keys their presses. */
     #build() {
       const root = this.shadowRoot ?? this.attachShadow({ mode: "open" });
       const style = document.createElement("style");
@@ -771,41 +840,51 @@ if (typeof customElements !== "undefined") {
       /** @param {string} tag @param {string} className */
       const part = (tag, className) => Object.assign(document.createElement(tag), { className });
       const card = document.createElement("ha-card");
-      const header = part("div", "header");
+      const device = part("div", "device");
+      const screen = part("div", "screen");
+      const overlay = part("div", "overlay");
       /** @type {Parts} */
       const parts = {
-        card,
-        screen: part("div", "screen"),
+        media: part("div", "media"),
         name: part("div", "name"),
-        state: part("div", "state"),
+        state: part("div", "chip"),
         warning: part("div", "warning"),
-        actions: part("div", "row actions"),
-        talk: part("div", "row talk"),
-        doors: part("div", "row doors"),
-        shortcuts: part("div", "row shortcuts"),
+        keys: part("div", "keys"),
+        extra: part("div", "keys extra"),
+        buttons: new Map(),
       };
-      header.append(parts.name, parts.state);
-      card.append(
-        parts.screen,
-        header,
-        parts.warning,
-        parts.actions,
-        parts.talk,
-        parts.doors,
-        parts.shortcuts,
-      );
+      overlay.append(parts.name, parts.state);
+      screen.append(parts.media, overlay, parts.warning);
+      device.append(screen, parts.keys, parts.extra);
+      card.append(device);
       root.replaceChildren(style, card);
-      parts.talk.append(this.#talkButton());
+      for (const name of /** @type {KeyName[]} */ ([
+        "answer",
+        "hang_up",
+        "monitor",
+        "talk",
+        "ring",
+      ])) {
+        const button = name === "talk" ? this.#talkKey() : keyElement("key");
+        if (name !== "talk") {
+          // The key of hang up refuses a call that rings: its name says which it does
+          button.addEventListener("click", () =>
+            this.#press(/** @type {KeyName} */ (button.dataset.key)),
+          );
+        }
+        button.dataset.key = name;
+        parts.buttons.set(name, button);
+        parts.keys.append(button);
+      }
       return parts;
     }
 
-    /** The push-to-talk button, built once: re-rendering it would drop the press in progress. */
-    #talkButton() {
-      const button = document.createElement("button");
-      button.append(document.createElement("ha-icon"), document.createElement("span"));
+    /** The key of push-to-talk: held to talk, or pressed once to talk and once to stop. */
+    #talkKey() {
+      const button = keyElement("key talk");
       const hold = () => (this.#config?.talk_mode ?? "hold") === "hold";
       button.addEventListener("pointerdown", (event) => {
-        if (!hold()) return;
+        if (!hold() || button.disabled) return;
         button.setPointerCapture?.(event.pointerId);
         this.#startTalk();
       });
@@ -817,7 +896,7 @@ if (typeof customElements !== "undefined") {
         if (this.#microphone) this.#stopTalk();
         else this.#startTalk();
       });
-      // The space bar, while the button has the focus: held to talk, as the pointer
+      // The space bar, while the key has the focus: held to talk, as the pointer
       button.addEventListener("keydown", (event) => {
         if (event.key !== " " || event.repeat || !hold()) return;
         event.preventDefault();
@@ -837,23 +916,26 @@ if (typeof customElements !== "undefined") {
       const parts = (this.#parts ??= this.#build());
       const station = this.#station;
       if (!hass || !station) {
-        parts.screen.hidden = true;
-        parts.talk.hidden = true;
         parts.name.textContent = "";
         parts.state.textContent = "";
+        parts.state.hidden = true;
         parts.warning.textContent = textsIn(hass?.language).no_station;
         parts.warning.hidden = false;
-        parts.actions.replaceChildren();
-        parts.doors.replaceChildren();
-        parts.shortcuts.replaceChildren();
+        parts.keys.hidden = true;
+        parts.extra.replaceChildren();
         this.#ringer.stop();
         return;
       }
       const texts = textsIn(hass.language);
       const state = callStateOf(this.#snapshot);
       const talking = this.#microphone !== null;
+      const talkable = talkAllowed(state, this.#snapshot);
+      // A talk the state no longer allows stops; one the door ends ends by itself
+      if (talking && !talkable) this.#stopTalk();
+      parts.keys.hidden = false;
+      parts.state.hidden = false;
       parts.name.textContent = station.name;
-      parts.state.className = `state ${state}`;
+      parts.state.className = `chip ${state}`;
       const time =
         state === "answered" ? elapsed(this.#snapshot?.call?.answered_at, Date.now()) : null;
       parts.state.textContent = [callStateName(hass, state), time].filter(Boolean).join(" ");
@@ -864,11 +946,13 @@ if (typeof customElements !== "undefined") {
       if (this.#ringer.ringing && this.#ringer.blocked) warnings.push(texts.tap_for_sound);
       parts.warning.textContent = warnings.join(" ");
       parts.warning.hidden = !warnings.length;
-      this.#renderScreen(hass, station, screenOf(state, this.#monitoring, talking));
-      this.#renderActions(hass, state);
-      this.#renderTalk(texts, talkAllowed(state, this.#snapshot), talking);
-      this.#renderDoors(hass, station);
-      this.#renderShortcuts(hass);
+      this.#renderScreen(
+        hass,
+        station,
+        screenOf(state, this.#monitoring, this.#microphone !== null),
+      );
+      this.#renderKeys(hass, state, talkable);
+      this.#renderExtra(hass, station);
     }
 
     /** @param {boolean} answered Tick every second while a call is answered. */
@@ -892,10 +976,12 @@ if (typeof customElements !== "undefined") {
      * @param {{ live: boolean, audible: boolean }} screen
      */
     #renderScreen(hass, station, screen) {
-      const { screen: element } = /** @type {Parts} */ (this.#parts);
+      const { media } = /** @type {Parts} */ (this.#parts);
       const camera = station.camera ? hass.states[station.camera] : undefined;
-      element.hidden = !camera;
-      if (!camera) return;
+      if (!camera) {
+        media.replaceChildren();
+        return;
+      }
       if (screen.live && this.#streamDefined === null) {
         // Once: the frontend defines its camera stream with its picture cards
         this.#streamDefined = false;
@@ -909,106 +995,89 @@ if (typeof customElements !== "undefined") {
         this.#stream?.remove();
         this.#stream = null;
         const picture = camera.attributes.entity_picture;
-        let image = element.querySelector("img");
-        if (!image) element.replaceChildren((image = document.createElement("img")));
+        let image = media.querySelector("img");
+        if (!image) media.replaceChildren((image = document.createElement("img")));
         if (picture && image.getAttribute("src") !== picture) image.src = picture;
         return;
       }
       if (!this.#stream) {
         this.#stream = document.createElement("ha-camera-stream");
-        element.replaceChildren(this.#stream);
+        media.replaceChildren(this.#stream);
       }
       this.#stream.stateObj = camera;
       this.#stream.muted = !screen.audible;
       this.#stream.fitMode = "cover";
     }
 
-    /** @param {Hass} hass @param {CallState} state */
-    #renderActions(hass, state) {
-      const { actions } = /** @type {Parts} */ (this.#parts);
-      const call = this.#snapshot?.call;
-      actions.replaceChildren(
-        ...mainActions(state, this.#monitoring, this.#ringMuted).map((action) => {
-          const button = document.createElement("button");
-          button.className = `${action.tone}${action.active ? " active" : ""}`;
-          const local = action.key === "monitor" || action.key === "ring";
-          button.disabled = !local && (!call || this.#busy !== null);
-          const icon = document.createElement("ha-icon");
-          icon.setAttribute("icon", action.icon);
-          const label = document.createElement("span");
-          label.textContent = actionName(hass, action);
-          button.append(icon, label);
-          button.addEventListener("click", () => this.#press(action));
-          return button;
-        }),
-      );
+    /** @param {Hass} hass @param {CallState} state @param {boolean} talkable */
+    #renderKeys(hass, state, talkable) {
+      const { buttons } = /** @type {Parts} */ (this.#parts);
+      const hasCall = Boolean(this.#snapshot?.call);
+      const keys = deviceKeys({
+        state,
+        monitoring: this.#monitoring,
+        ringMuted: this.#ringMuted,
+        talkable,
+        talking: this.#microphone !== null,
+      });
+      keys.forEach((key, index) => {
+        const name = /** @type {KeyName} */ (
+          ["answer", "hang_up", "monitor", "talk", "ring"][index]
+        );
+        const button = /** @type {HTMLButtonElement} */ (buttons.get(name));
+        const ofCall = index < 2;
+        // What the key does now: hang up refuses a call that rings
+        if (name !== "talk") button.dataset.key = key.key;
+        showKey(button, {
+          icon: key.icon,
+          name: keyName(hass, key),
+          className: `key ${key.tone}${key.active ? " active" : ""}${name === "talk" ? " talk" : ""}`,
+          enabled: key.enabled && (!ofCall || (hasCall && this.#busy === null)),
+        });
+      });
     }
 
-    /** @param {Texts} texts @param {boolean} allowed @param {boolean} talking */
-    #renderTalk(texts, allowed, talking) {
-      const { talk } = /** @type {Parts} */ (this.#parts);
-      // A talk the door ends by itself ends here too; one the state no longer allows stops
-      if (talking && !allowed) this.#stopTalk();
-      talk.hidden = !allowed;
-      const button = /** @type {HTMLButtonElement} */ (talk.firstElementChild);
-      button.className = talking ? "active" : "";
-      button
-        .querySelector("ha-icon")
-        ?.setAttribute("icon", talking ? "mdi:microphone" : "mdi:microphone-outline");
-      const label = button.querySelector("span");
-      if (label) label.textContent = talking ? texts.talking : texts.talk;
-    }
-
-    /** @param {Hass} hass @param {Station} station */
-    #renderDoors(hass, station) {
-      const { doors } = /** @type {Parts} */ (this.#parts);
+    /** The doors and the shortcuts, under the keys. @param {Hass} hass @param {Station} station */
+    #renderExtra(hass, station) {
+      const { extra } = /** @type {Parts} */ (this.#parts);
       const numbers = doorsOf(this.#snapshot);
       const entry = station.entry_id;
-      doors.replaceChildren(
-        ...numbers.map((door) => {
-          const button = document.createElement("button");
-          button.disabled = !entry || this.#busy !== null;
-          const icon = document.createElement("ha-icon");
-          icon.setAttribute("icon", "mdi:door-open");
-          const label = document.createElement("span");
-          label.textContent = doorName(hass, door, numbers.length);
-          button.append(icon, label);
-          button.addEventListener(
-            "click",
-            () => entry && this.#send(`door_${door}`, openDoorMessage(entry, door)),
-          );
-          return button;
-        }),
-      );
-    }
-
-    /** @param {Hass} hass */
-    #renderShortcuts(hass) {
-      const { shortcuts } = /** @type {Parts} */ (this.#parts);
-      shortcuts.replaceChildren(
-        ...shortcutsOf(/** @type {CardConfig} */ (this.#config)).map((shortcut) => {
-          const view = shortcutView(hass, shortcut);
-          const button = document.createElement("button");
-          button.className = view.active ? "active" : "";
-          button.disabled = !view.available;
-          const icon = document.createElement("ha-icon");
-          icon.setAttribute("icon", view.icon);
-          const label = document.createElement("span");
-          label.textContent = view.name;
-          button.append(icon, label);
-          button.addEventListener("click", () => {
-            const { domain, service, data } = shortcutService(shortcut.entity);
-            this.#hass?.callService?.(domain, service, data).catch((/** @type {any} */ err) => {
-              this.#notify(err?.message ?? String(err));
-            });
+      const doors = numbers.map((door) => {
+        const button = keyElement("key");
+        showKey(button, {
+          icon: "mdi:key-variant",
+          name: doorName(hass, door, numbers.length),
+          className: "key",
+          enabled: Boolean(entry) && this.#busy === null,
+        });
+        button.addEventListener(
+          "click",
+          () => entry && this.#send(`door_${door}`, openDoorMessage(entry, door)),
+        );
+        return button;
+      });
+      const shortcuts = shortcutsOf(/** @type {CardConfig} */ (this.#config)).map((shortcut) => {
+        const view = shortcutView(hass, shortcut);
+        const button = keyElement("key");
+        showKey(button, {
+          icon: view.icon,
+          name: view.name,
+          className: `key${view.active ? " active" : ""}`,
+          enabled: view.available,
+        });
+        button.addEventListener("click", () => {
+          const { domain, service, data } = shortcutService(shortcut.entity);
+          this.#hass?.callService?.(domain, service, data).catch((/** @type {any} */ err) => {
+            this.#notify(err?.message ?? String(err));
           });
-          return button;
-        }),
-      );
+        });
+        return button;
+      });
+      extra.replaceChildren(...doors, ...shortcuts);
     }
 
     getCardSize() {
-      return 9;
+      return 7;
     }
 
     /** @param {Hass} hass */

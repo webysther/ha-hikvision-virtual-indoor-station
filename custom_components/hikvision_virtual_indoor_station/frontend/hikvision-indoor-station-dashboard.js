@@ -228,19 +228,41 @@ export function textsIn(language) {
 }
 
 /**
+ * Return the path of the view of a door station, from its name ("Front door" →
+ * "front-door"), unique among the paths already taken.
+ *
+ * @param {string} name
+ * @param {Set<string>} taken The paths of the other views; this one is added to them.
+ */
+export function viewPath(name, taken) {
+  const base =
+    name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "door-station";
+  let path = base;
+  for (let number = 2; taken.has(path); number += 1) path = `${base}-${number}`;
+  taken.add(path);
+  return path;
+}
+
+/**
  * Return the view of a door station: the card, and its activity.
  *
  * @param {Station} station
  * @param {Hass} hass
+ * @param {string} [path] The path of the view; from the name of the door station by default.
  */
-export function stationView(station, hass) {
+export function stationView(station, hass, path = viewPath(station.name, new Set())) {
   const texts = textsIn(hass.language);
   const activity = ["doorbell", "call", "sip_registered"]
     .map((key) => station.entities[key])
     .filter(Boolean);
   return {
     title: station.name,
-    path: station.device_id,
+    path,
     icon: "mdi:doorbell-video",
     type: "sections",
     max_columns: 2,
@@ -268,7 +290,10 @@ export function generateDashboard(hass) {
     const texts = textsIn(hass.language);
     return { views: [{ cards: [{ type: "markdown", content: texts.no_station }] }] };
   }
-  return { views: stations.map((station) => stationView(station, hass)) };
+  const taken = new Set();
+  return {
+    views: stations.map((station) => stationView(station, hass, viewPath(station.name, taken))),
+  };
 }
 
 if (typeof customElements !== "undefined") {

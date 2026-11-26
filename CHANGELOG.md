@@ -31,11 +31,14 @@ station.
 - Icons for every entity and state, and original brand art.
 - Diagnostics without addresses, names or account.
 - The indoor station card (`custom:hikvision-indoor-station-card`), in the card
-  picker: the door's camera, live while the door rings, during a call or while
-  monitoring, and its picture otherwise; the state of the call; Answer and
-  Reject while it rings, Hang up once answered, Monitor while idle (the door's
-  sound plays once answered or monitored); a key for each door. A warning shows
-  when the door station is not registered.
+  picker, laid out like a wall monitor (a DS-KH6110-WE1): a dark bezel, the
+  door's camera on its screen with the name and the state of the call, and the
+  keys under it, always in the same places and lit when they can be pressed:
+  Answer (green), Hang up (red, refusing a call that rings), Monitor, Push to
+  talk and the ringer. The camera plays live while the door rings, during a call
+  or while monitoring, and shows its picture otherwise; the door's sound plays
+  once answered or monitored. A key for each door and the shortcuts sit under
+  them. A warning shows when the door station is not registered.
 - Push-to-talk on the card: hold the button (or the space bar on it), or press
   it once to talk and once to stop (`talk_mode: toggle`). Your voice goes with
   an answered call, or through the door's speaker while idle; the door's sound
@@ -49,7 +52,8 @@ station.
   rest toggled. The card has a visual editor: the door station, the way to talk
   and the shortcuts.
 - The indoor station dashboard (`custom:hikvision-indoor-station`, in **Add
-  dashboard**): a view for each door station, with its card and its activity.
+  dashboard**): a view for each door station, named after it, with its card and
+  its activity.
 - The README shows how to set the door station up, with pictures of its web page
   (VoIP line, number and call priority).
 - The README in Italian and Brazilian Portuguese, with a section on the
@@ -61,5 +65,7 @@ station.
   settings of Home Assistant's session.
 - The integration is in the **Doorbells and intercoms** category.
 - The code is now under the MIT license.
+- **Visit** on the device page opens the web page of the door station over
+  HTTPS.
 
 [Unreleased]: https://github.com/webysther/ha-hikvision-virtual-indoor-station/commits/main

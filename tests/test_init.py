@@ -48,7 +48,7 @@ async def test_the_door_station_and_its_entities(
     assert device.manufacturer == "Hikvision"
     assert device.model == "DS-KD8003-IME1(B)"
     assert device.sw_version == "V3.7.3 build 260915"
-    assert device.configuration_url == f"http://{DOOR_IP}"
+    assert device.configuration_url == f"https://{DOOR_IP}"
     assert hass.states.get("sensor.door_station_call").state == "idle"
     assert hass.states.get("binary_sensor.door_station_sip_registration").state == "off"
     assert hass.states.get("event.door_station_doorbell").state == "unknown"
