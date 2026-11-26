@@ -19,7 +19,9 @@ station.
   call's id), the call sensor and the SIP registration sensor.
 - Buttons to open each door, and to answer, hang up or refuse the call.
 - The camera of the door station: its RTSP stream, with the visitor's voice, and
-  snapshots.
+  snapshots. A snapshot takes the shape of the live video: a door station takes
+  its pictures at a size of its own (11:9 on a DS-KD8003, which streams 16:9),
+  which squeezed the picture in every card.
 - Websocket commands for the cards: the state of the door, the call by its id,
   opening a door, and talking (with the call during an answered call, through
   the door's speaker otherwise).

@@ -548,10 +548,7 @@ if (typeof customElements !== "undefined") {
   const STYLE = `
     ha-card { overflow: hidden; }
     .screen { position: relative; aspect-ratio: 16 / 9; background: #000; }
-    .media, .media > * { position: absolute; inset: 0; width: 100%; height: 100%; }
-    /* A door station takes its picture at a size of its own, not always the shape of its
-       stream: the picture is drawn to the shape of the live video, so neither is distorted. */
-    .media > img { object-fit: fill; }
+    .media, .media > * { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
     .overlay { position: absolute; inset: 0 0 auto 0; display: flex; align-items: center;
       justify-content: space-between; gap: 8px; padding: 8px 12px; font-size: 14px; color: #fff;
       background: linear-gradient(rgba(0, 0, 0, 0.6), transparent); pointer-events: none; }

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import timedelta
+import io
 from unittest.mock import MagicMock, patch
 
 from aiohikvision import CallError, DoorStationInfo, Registration
+from aiohikvision.isapi.model.inventory import StreamSpec
 from aiohikvision.isapi.wire.faults import BadCredentials, Unreachable
 from homeassistant.components.camera import async_get_image, async_get_stream_source
 from homeassistant.config_entries import ConfigEntryState
@@ -14,6 +17,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.util import dt as dt_util
+from PIL import Image
 import pytest
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
@@ -70,6 +74,36 @@ async def test_the_camera(
     door.snapshot.side_effect = Unreachable("busy")
     with pytest.raises(HomeAssistantError):
         await async_get_image(hass, "camera.door_station")
+
+
+def jpeg(width: int, height: int) -> bytes:
+    """Return a JPEG picture of a size."""
+    output = io.BytesIO()
+    Image.new("RGB", (width, height), "gray").save(output, format="JPEG")
+    return output.getvalue()
+
+
+async def test_the_picture_takes_the_shape_of_the_stream(
+    hass: HomeAssistant, entry: MockConfigEntry, door: MagicMock
+) -> None:
+    """A DS-KD8003 takes its pictures 11:9 while it streams 16:9: they are widened."""
+    door.read_info.return_value = replace(
+        INFO, stream=StreamSpec("101", "H.264", width=1280, height=720)
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    door.snapshot.return_value = jpeg(704, 576)
+    image = await async_get_image(hass, "camera.door_station")
+    with Image.open(io.BytesIO(image.content)) as picture:
+        assert picture.size == (1024, 576)
+    # A picture in the shape of the stream, or one that cannot be read, is left as it is
+    door.snapshot.return_value = sixteen_by_nine = jpeg(1920, 1080)
+    image = await async_get_image(hass, "camera.door_station")
+    assert image.content == sixteen_by_nine
+    door.snapshot.return_value = b"\xff\xd8jpeg\xff\xd9"
+    image = await async_get_image(hass, "camera.door_station")
+    assert image.content == b"\xff\xd8jpeg\xff\xd9"
 
 
 async def test_a_refused_account_asks_to_sign_in_again(
