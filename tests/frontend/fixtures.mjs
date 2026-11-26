@@ -20,6 +20,10 @@ export const STATIONS = {
       hang_up: "button.front_door_hang_up",
       reject: "button.front_door_reject",
       open_door: "button.front_door_open_door",
+      visits: "sensor.front_door_visits",
+      missed_visits: "sensor.front_door_missed_visits",
+      visits_by_hour: "image.front_door_visits_by_hour",
+      visits_by_day: "image.front_door_visits_by_day",
     },
   },
   back: {

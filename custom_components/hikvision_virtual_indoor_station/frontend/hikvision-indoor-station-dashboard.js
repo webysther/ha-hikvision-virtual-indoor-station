@@ -22,7 +22,27 @@ export const CARD = "hikvision-indoor-station-card";
  * The entities of a door station the card and the dashboard use, by translation key
  * (the camera has none: it is the entity of the device).
  */
-export const KEYS = ["call", "doorbell", "sip_registered", "answer", "hang_up", "reject"];
+export const KEYS = [
+  "call",
+  "doorbell",
+  "sip_registered",
+  "answer",
+  "hang_up",
+  "reject",
+  "visits",
+  "missed_visits",
+  "visits_by_hour",
+  "visits_by_day",
+];
+
+/** The charts of the visits (image entities), in the order they are shown. */
+export const CHARTS = ["visits_by_hour", "visits_by_day"];
+
+/** The counters of the visits, whose statistics show the visits of each week. */
+export const COUNTERS = ["visits", "missed_visits"];
+
+/** The statistics of the visits cover a quarter: 13 weeks. */
+export const STATISTICS_DAYS = 13 * 7;
 
 /**
  * @typedef {{
@@ -139,6 +159,7 @@ export const TEXTS = {
     description: "The indoor station of a Hikvision door station: answer, talk, open the door.",
     no_station: "No door station yet: add one in Settings → Devices & services.",
     activity: "Activity",
+    visits: "Visits",
     monitor: "Monitor",
     stop_monitor: "Stop monitoring",
     live: "Live",
@@ -173,6 +194,7 @@ export const TEXTS = {
     description: "Il posto interno di un citofono Hikvision: rispondi, parla, apri la porta.",
     no_station: "Ancora nessun citofono: aggiungine uno in Impostazioni → Dispositivi e servizi.",
     activity: "Attività",
+    visits: "Visite",
     monitor: "Monitora",
     stop_monitor: "Interrompi",
     live: "Dal vivo",
@@ -207,6 +229,7 @@ export const TEXTS = {
     description: "O monitor interno de um porteiro Hikvision: atender, falar, abrir a porta.",
     no_station: "Nenhum porteiro ainda: adicione um em Configurações → Dispositivos e serviços.",
     activity: "Atividade",
+    visits: "Visitas",
     monitor: "Monitorar",
     stop_monitor: "Parar",
     live: "Ao vivo",
@@ -273,7 +296,40 @@ export function viewPath(name, taken) {
 }
 
 /**
- * Return the view of a door station: the card, and its activity.
+ * Return the card of a chart of the visits: its image, the width of its section.
+ *
+ * @param {string} entity
+ */
+export function chartPicture(entity) {
+  return {
+    type: "picture-entity",
+    entity,
+    show_name: false,
+    show_state: false,
+    grid_options: { columns: 12 },
+  };
+}
+
+/**
+ * Return the visits of each week of the last quarter, from the statistics of the
+ * counters.
+ *
+ * @param {string[]} entities
+ */
+export function visitsStatistics(entities) {
+  return {
+    type: "statistics-graph",
+    entities,
+    period: "week",
+    stat_types: ["change"],
+    chart_type: "bar",
+    days_to_show: STATISTICS_DAYS,
+    grid_options: { columns: 12 },
+  };
+}
+
+/**
+ * Return the view of a door station: the card, its activity, and its visits.
  *
  * @param {Station} station
  * @param {Hass} hass
@@ -284,6 +340,21 @@ export function stationView(station, hass, path = viewPath(station.name, new Set
   const activity = ["doorbell", "call", "sip_registered"]
     .map((key) => station.entities[key])
     .filter(Boolean);
+  const charts = CHARTS.map((key) => station.entities[key]).filter(Boolean);
+  const counters = COUNTERS.map((key) => station.entities[key]).filter(Boolean);
+  const visits =
+    charts.length || counters.length
+      ? [
+          {
+            type: "grid",
+            cards: [
+              { type: "heading", heading: texts.visits },
+              ...charts.map(chartPicture),
+              ...(counters.length ? [visitsStatistics(counters)] : []),
+            ],
+          },
+        ]
+      : [];
   return {
     title: station.name,
     path,
@@ -299,6 +370,7 @@ export function stationView(station, hass, path = viewPath(station.name, new Set
           { type: "logbook", target: { entity_id: activity }, hours_to_show: 48 },
         ],
       },
+      ...visits,
     ],
   };
 }

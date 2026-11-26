@@ -63,6 +63,9 @@ hang up or refuse the call, and open the door.
   repair issue that says how to point the door station at Home Assistant.
 - **Shows how loaded it is**: its CPU and how many clients stream its video, and
   what each input and output is wired for.
+- **See when visitors come**: every visit is counted (answered, missed, refused),
+  and two charts show the hours the door rings over the last 8 weeks and the
+  visits of each of the last 28 days.
 
 ## Use cases
 
@@ -140,8 +143,11 @@ The integration brings its own card and dashboard: there is nothing else to
 install.
 
 - **The dashboard**: **Settings → Dashboards → Add dashboard → Hikvision Virtual
-  Indoor Station**. It has a view for each door station, with its card and its
-  activity (rings, calls, registration).
+  Indoor Station**. It has a view for each door station, with its card, its
+  activity (rings, calls, registration) and its visits: when the door rings (a
+  24-hour clock of the last 8 weeks), the visits of each of the last 28 days
+  (weekends shaded) and those of each week of the last quarter. Green is
+  answered, amber missed and red refused, as the keys of the card.
 - **The card**: **Hikvision Virtual Indoor Station** in the card picker of any
   dashboard, with a visual editor. It is laid out like the screen of an indoor
   station:
@@ -220,7 +226,8 @@ repair issue, whose fix removes it from the door station.
 in the three dots of the door station removes it, with its device and entities.
 Then point the VoIP line of the door station elsewhere (or disable it), and
 uninstall the integration from the Marketplace. A mobile app alone is removed
-with **Delete** in the three dots of its line, under its door station.
+with **Delete** in the three dots of its line, under its door station. The
+visits of a door station are forgotten with it.
 
 ## How the data is updated
 
@@ -237,6 +244,9 @@ with **Delete** in the three dots of its line, under its door station.
 - **The camera** streams on demand; its picture is taken when a dashboard asks.
 - **The phones** are notified when the door rings, and the notification is taken
   back when the call is answered elsewhere, missed or over.
+- **The visits** are counted as each call ends, and those of the last 8 weeks are
+  kept in Home Assistant (when the door rang and how the call ended, nothing about
+  the caller). The charts are drawn when a dashboard shows them.
 
 ## Known limitations
 
@@ -304,6 +314,8 @@ please report yours.
 | Output (diagnostic) | What a changeable output drives: `electric_lock`, `doorbell`, `disabled` |
 | Input (diagnostic) | What a changeable input is wired for: `door_contact`, `exit_button`, `disabled` |
 | CPU usage, Video sessions (diagnostic) | How loaded the door station is: its CPU, and how many clients stream its video |
+| Visits, Missed visits (sensors) | How many visits came, and were missed: counters whose statistics give the visits of each day, week or month |
+| Visits by hour, Visits by day (images) | Charts: when the door rings (24 hours, the last 8 weeks), and the visits of each of the last 28 days; green answered, amber missed, red refused |
 | Answer, Hang up, Reject (buttons) | Act on the current call |
 | Microphone volume, Speaker volume, Call volume (configuration) | The volumes of the door station |
 | Door open time (configuration) | How long a door stays open, in seconds; one per door |

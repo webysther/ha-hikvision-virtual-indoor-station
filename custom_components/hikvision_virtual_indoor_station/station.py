@@ -13,7 +13,7 @@ from dataclasses import replace
 from datetime import datetime, timedelta
 import hashlib
 import time
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, overload
 
 from aiohikvision import (
     CallError,
@@ -40,6 +40,7 @@ from .const import (
     SIP_KEEPALIVE_TIMEOUT,
     SIP_UNHEARD_GRACE,
 )
+from .visits import VisitLog
 
 if TYPE_CHECKING:
     from aiohikvision import Registration
@@ -60,6 +61,12 @@ def call_token(call_id: str) -> str:
     return hashlib.sha256(call_id.encode()).hexdigest()[:TOKEN_LENGTH]
 
 
+@overload
+def wall_clock(monotonic: float) -> datetime: ...
+@overload
+def wall_clock(monotonic: None) -> None: ...
+@overload
+def wall_clock(monotonic: float | None) -> datetime | None: ...
 def wall_clock(monotonic: float | None) -> datetime | None:
     """When a moment of the monotonic clock was, in UTC."""
     if monotonic is None:
@@ -89,6 +96,7 @@ class IndoorStation:
         self.registration: Registration | None = None
         self.health: HealthCoordinator | None = None
         self.settings: SettingsCoordinator | None = None
+        self.visits = VisitLog(hass, entry.entry_id)
         # When the door's last keepalive arrived, and since when it is unheard
         self.last_heard: float | None = None
         self._unheard_since = time.monotonic()
@@ -206,6 +214,7 @@ class IndoorStation:
     def call_changed(self, call: DoorCall) -> None:
         """Take a change of a call of this door: it rang, was answered or ended."""
         self.call = call
+        self.visits.record(call, wall_clock(call.started_at))
         for listener in list(self._call_listeners):
             listener(call)
         self._notify()

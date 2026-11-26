@@ -137,6 +137,14 @@
                 }
             }
         },
+        "image": {
+            "visits_by_hour": {
+                "name": "Visits by hour"
+            },
+            "visits_by_day": {
+                "name": "Visits by day"
+            }
+        },
         "number": {
             "microphone_volume": {
                 "name": "Microphone volume"
@@ -224,6 +232,12 @@
                     "ringing": "Ringing",
                     "answered": "Answered"
                 }
+            },
+            "visits": {
+                "name": "Visits"
+            },
+            "missed_visits": {
+                "name": "Missed visits"
             },
             "output": {
                 "name": "Output {output}",

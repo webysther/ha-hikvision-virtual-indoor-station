@@ -65,6 +65,9 @@ parli, riagganci o rifiuti la chiamata, e apri la porta.
   una riparazione che spiega come puntare il citofono su Home Assistant.
 - **Mostra quanto è carico**: la sua CPU e quanti client trasmettono il suo
   video, e a cosa è collegato ogni ingresso e ogni uscita.
+- **Vedi quando arrivano le visite**: ogni visita è contata (risposta, persa,
+  rifiutata), e due grafici mostrano le ore in cui suona la porta nelle ultime 8
+  settimane e le visite di ciascuno degli ultimi 28 giorni.
 
 ## Casi d'uso
 
@@ -145,8 +148,12 @@ L'integrazione porta la sua scheda e la sua plancia: non c'è nient'altro da
 installare.
 
 - **La plancia**: **Impostazioni → Plance → Aggiungi plancia → Hikvision Virtual
-  Indoor Station**. Ha una vista per ogni citofono, con la sua scheda e la sua
-  attività (squilli, chiamate, registrazione).
+  Indoor Station**. Ha una vista per ogni citofono, con la sua scheda, la sua
+  attività (squilli, chiamate, registrazione) e le sue visite: quando suona la
+  porta (un orologio di 24 ore delle ultime 8 settimane), le visite di ciascuno
+  degli ultimi 28 giorni (con i fine settimana in ombra) e quelle di ogni
+  settimana dell'ultimo trimestre. Verde è risposta, ambra persa e rosso
+  rifiutata, come i tasti della scheda.
 - **La scheda**: **Hikvision Virtual Indoor Station** nella scelta delle schede
   di qualsiasi plancia, con un editor visuale. È disegnata come lo schermo di un
   posto interno:
@@ -227,7 +234,8 @@ una riparazione, che la rimuove dal citofono.
 **Elimina**, nei tre puntini del citofono, lo rimuove con il suo dispositivo e le
 sue entità. Poi punta la linea VoIP del citofono altrove (o disattivala), e
 disinstalla l'integrazione dal Marketplace. Una sola app si rimuove con
-**Elimina** nei tre puntini della sua riga, sotto il suo citofono.
+**Elimina** nei tre puntini della sua riga, sotto il suo citofono. Le visite di
+un citofono vengono dimenticate con lui.
 
 ## Come vengono aggiornati i dati
 
@@ -248,6 +256,10 @@ disinstalla l'integrazione dal Marketplace. Una sola app si rimuove con
   una plancia la chiede.
 - **I telefoni** vengono avvisati quando la porta suona, e la notifica viene
   ritirata quando la chiamata riceve risposta altrove, viene persa o finisce.
+- **Le visite** vengono contate alla fine di ogni chiamata, e quelle delle ultime
+  8 settimane sono conservate in Home Assistant (quando ha suonato la porta e
+  come è finita la chiamata, niente su chi ha suonato). I grafici vengono
+  disegnati quando una plancia li mostra.
 
 ## Limitazioni note
 
@@ -317,6 +329,8 @@ funzionare; segnala il tuo.
 | Output (diagnostica) | Cosa comanda un'uscita configurabile: `electric_lock`, `doorbell`, `disabled` |
 | Input (diagnostica) | A cosa è collegato un ingresso configurabile: `door_contact`, `exit_button`, `disabled` |
 | CPU usage, Video sessions (diagnostica) | Quanto è carico il citofono: la sua CPU, e quanti client trasmettono il suo video |
+| Visits, Missed visits (sensori) | Quante visite sono arrivate, e quante perse: contatori le cui statistiche danno le visite di ogni giorno, settimana o mese |
+| Visits by hour, Visits by day (immagini) | Grafici: quando suona la porta (24 ore, le ultime 8 settimane), e le visite di ciascuno degli ultimi 28 giorni; verde risposta, ambra persa, rosso rifiutata |
 | Answer, Hang up, Reject (pulsanti) | Agiscono sulla chiamata in corso |
 | Microphone volume, Speaker volume, Call volume (configurazione) | I volumi del citofono |
 | Door open time (configurazione) | Quanto resta aperta una porta, in secondi; una per porta |

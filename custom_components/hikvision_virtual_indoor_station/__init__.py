@@ -37,12 +37,14 @@ from .coordinator import Health, HealthCoordinator, Settings, SettingsCoordinato
 from .dashboard import async_offer_the_frontend
 from .phones import Phones
 from .station import IndoorStation
+from .visits import VisitLog
 
 PLATFORMS = [
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
     Platform.CAMERA,
     Platform.EVENT,
+    Platform.IMAGE,
     Platform.NUMBER,
     Platform.SELECT,
     Platform.SENSOR,
@@ -105,6 +107,7 @@ async def async_setup_entry(
         )
 
     station = IndoorStation(hass, entry, door, info, await _address(host))
+    await station.visits.async_load()
     station.health = HealthCoordinator(hass, entry, door)
     # The door station just answered: no second request before the first interval
     station.health.async_set_updated_data(Health(info.outputs, load))
@@ -140,6 +143,13 @@ async def async_unload_entry(
         await sip.async_release(hass, station)
         await station.async_close()
     return unloaded
+
+
+async def async_remove_entry(
+    hass: HomeAssistant, entry: IndoorStationConfigEntry
+) -> None:
+    """Forget the visits of a door station that is removed."""
+    await VisitLog(hass, entry.entry_id).async_remove()
 
 
 async def _address(host: str) -> str:

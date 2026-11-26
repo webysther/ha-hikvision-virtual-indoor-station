@@ -115,6 +115,42 @@ describe("generateDashboard", () => {
     ]);
   });
 
+  it("shows the visits of a door station: its charts and the weeks of its counters", () => {
+    const { views } = generateDashboard(homeAssistant(["front", "back"]));
+    const visits = views[1].sections[2];
+    assert.equal(visits.cards[0].heading, "Visits");
+    assert.deepEqual(
+      visits.cards.slice(1, 3).map((card) => [card.type, card.entity, card.show_name]),
+      [
+        ["picture-entity", STATIONS.front.entities.visits_by_hour, false],
+        ["picture-entity", STATIONS.front.entities.visits_by_day, false],
+      ],
+    );
+    assert.deepEqual(visits.cards[3], {
+      type: "statistics-graph",
+      entities: [STATIONS.front.entities.visits, STATIONS.front.entities.missed_visits],
+      period: "week",
+      stat_types: ["change"],
+      chart_type: "bar",
+      days_to_show: 91,
+      grid_options: { columns: 12 },
+    });
+    // A door station whose visits the frontend does not have yet: no section for them
+    assert.equal(views[0].sections.length, 2);
+  });
+
+  it("shows the charts alone when the counters are not there", () => {
+    const hass = homeAssistant(["front"]);
+    for (const key of ["visits", "missed_visits"]) {
+      delete hass.entities[STATIONS.front.entities[key]];
+    }
+    const visits = generateDashboard(hass).views[0].sections[2];
+    assert.deepEqual(
+      visits.cards.map((card) => card.type),
+      ["heading", "picture-entity", "picture-entity"],
+    );
+  });
+
   it("says how to add a door station when there is none", () => {
     const { views } = generateDashboard({ ...homeAssistant([]), language: "pt-BR" });
     assert.match(views[0].cards[0].content, /Nenhum porteiro/);

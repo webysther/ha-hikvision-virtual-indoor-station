@@ -18,6 +18,7 @@ from homeassistant.core import HomeAssistant
 from . import IndoorStationConfigEntry
 from .phones import extensions_of, notify_service_of
 from .version import __version__
+from .visits import Outcome
 
 TO_REDACT = {CONF_HOST, CONF_PASSWORD, CONF_USERNAME, "caller", "callee", "id"}
 
@@ -73,5 +74,12 @@ async def async_get_config_entry_diagnostics(
         "settings": {
             f"{key}/{channel}": value.value
             for (key, channel), value in station.settings.data.values.items()
+        },
+        # How many visits, never when: their times tell the habits of a household
+        "visits": {
+            "kept": len(station.visits.recent()),
+            "total": {
+                outcome.value: station.visits.total(outcome) for outcome in Outcome
+            },
         },
     }

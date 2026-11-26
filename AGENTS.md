@@ -70,6 +70,10 @@ custom_components/hikvision_virtual_indoor_station/
   setting.py       SettingEntity: a setting the door station offers (the image
                    of its camera, volumes, door open time, voice prompt), as
                    number.py, select.py or switch.py
+  visits.py        VisitLog: each ring once its call is over (when, and how it
+                   ended), kept 8 weeks in the storage of Home Assistant, with
+                   the totals the counters read (sensor.py); charts.py draws
+                   them as SVG without words (pure), image.py serves them
   entity.py        the device of the door station; event.py (the doorbell:
                    ring, answered, rejected, missed, ended), sensor.py (the
                    call; outputs, inputs, CPU, video sessions), binary_sensor.py (SIP registration), button.py (open
@@ -127,7 +131,8 @@ Users' automations and dashboards depend on what the integration exposes.
   (`Identity.stable_id`), as its device; entities are `<serial>_<key>`, with the
   keys `call`, `doorbell`, `sip_registered`, `camera`, `answer`, `hang_up`,
   `reject`, `open_door_<number>`, `output_<number>`, `input_<number>`,
-  `cpu_usage`, `video_sessions`, and the settings (`SETTING_KEYS` of
+  `cpu_usage`, `video_sessions`, `visits`, `missed_visits`, `visits_by_hour`,
+  `visits_by_day`, and the settings (`SETTING_KEYS` of
   `setting.py`; a door's setting ends with `_<door number>`).
 - Never rename the custom elements (`custom:hikvision-indoor-station-card`, the strategy
   `custom:hikvision-indoor-station`) nor the keys of the card's configuration

@@ -1,4 +1,4 @@
-"""The call of the door station, what its outputs and inputs do, and its load."""
+"""The call of the door station, its visits, its outputs, inputs and load."""
 
 from __future__ import annotations
 
@@ -11,13 +11,14 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import PERCENTAGE, EntityCategory
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import IndoorStationConfigEntry
 from .const import CALL_STATES
 from .entity import IndoorStationEntity
 from .station import IndoorStation
+from .visits import Outcome
 
 PARALLEL_UPDATES = 0
 
@@ -42,6 +43,8 @@ async def async_setup_entry(
     load = station.health.data.load
     entities: list[SensorEntity] = [
         CallSensor(station),
+        VisitsSensor(station, "visits", None),
+        VisitsSensor(station, "missed_visits", Outcome.MISSED),
         *(
             OutputSensor(station, output.number)
             for output in changeable_outputs(station.info)
@@ -179,3 +182,35 @@ class VideoSessionsSensor(IndoorStationEntity, SensorEntity):
     def native_value(self) -> int | None:
         """The number of video sessions, as last read."""
         return self.coordinator.data.load.video_sessions
+
+
+class VisitsSensor(IndoorStationEntity, SensorEntity):
+    """How many visits ever came, or were missed: a counter for the statistics.
+
+    Home Assistant's long-term statistics keep its change by hour, so a statistics
+    graph shows the visits of each day, week or month.
+    """
+
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+
+    def __init__(
+        self, station: IndoorStation, key: str, outcome: Outcome | None
+    ) -> None:
+        """Create the counter of the visits, or of those that ended in an outcome."""
+        super().__init__(station, key)
+        self._attr_translation_key = key
+        self._outcome = outcome
+
+    async def async_added_to_hass(self) -> None:
+        """Count again with each visit."""
+        await super().async_added_to_hass()
+        self.async_on_remove(self.station.visits.async_add_listener(self._counted))
+
+    @callback
+    def _counted(self) -> None:
+        self.async_write_ha_state()
+
+    @property
+    def native_value(self) -> int:
+        """The number of visits so far."""
+        return self.station.visits.total(self._outcome)

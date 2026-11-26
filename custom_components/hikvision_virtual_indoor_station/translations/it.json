@@ -137,6 +137,14 @@
                 }
             }
         },
+        "image": {
+            "visits_by_hour": {
+                "name": "Visite per ora"
+            },
+            "visits_by_day": {
+                "name": "Visite per giorno"
+            }
+        },
         "number": {
             "microphone_volume": {
                 "name": "Volume del microfono"
@@ -224,6 +232,12 @@
                     "ringing": "Squilla",
                     "answered": "In corso"
                 }
+            },
+            "visits": {
+                "name": "Visite"
+            },
+            "missed_visits": {
+                "name": "Visite perse"
             },
             "output": {
                 "name": "Uscita {output}",

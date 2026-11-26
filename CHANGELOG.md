@@ -84,8 +84,17 @@ station.
 - The indoor station panel: a door station's card on a page of its own, out of
   the sidebar, opened by the notifications.
 - The indoor station dashboard (`custom:hikvision-indoor-station`, in **Add
-  dashboard**): a view for each door station, named after it, with its card and
-  its activity.
+  dashboard**): a view for each door station, named after it, with its card,
+  its activity and its visits.
+- The visits: every ring is counted once its call is over (**Visits** and
+  **Missed visits**, whose statistics give the visits of each day, week or
+  month), and those of the last 8 weeks are kept in Home Assistant, with nothing
+  about the caller. Two charts draw them, without words so that they read in
+  every language: **Visits by hour**, a 24-hour clock of when the door rings with
+  the share of answered, missed and refused visits, and **Visits by day**, each
+  of the last 28 days with the weekends shaded. The dashboard shows them in a
+  **Visits** section, with the visits of each week of the last quarter. A
+  removed door station forgets its visits.
 - The README shows how to set the door station up, with pictures of its web page
   (VoIP line, number and call priority).
 - The README in Italian and Brazilian Portuguese, with a section on the

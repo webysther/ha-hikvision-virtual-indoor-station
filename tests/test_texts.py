@@ -70,6 +70,7 @@ def test_every_entity_has_a_name_and_an_icon() -> None:
             "binary_sensor",
             "button",
             "event",
+            "image",
             "number",
             "select",
             "sensor",

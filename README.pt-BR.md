@@ -64,6 +64,9 @@ atende, fala, desliga ou recusa a chamada, e abre a porta.
   reparo que explica como apontar o porteiro para o Home Assistant.
 - **Mostra o quanto ele está carregado**: a CPU e quantos clientes transmitem o
   vídeo dele, e para que serve cada entrada e cada saída.
+- **Veja quando as visitas chegam**: cada visita é contada (atendida, perdida,
+  recusada), e dois gráficos mostram as horas em que a porta toca nas últimas 8
+  semanas e as visitas de cada um dos últimos 28 dias.
 
 ## Casos de uso
 
@@ -140,8 +143,12 @@ A integração traz o próprio card e o próprio dashboard: não há mais nada p
 instalar.
 
 - **O dashboard**: **Configurações → Painéis → Adicionar painel → Hikvision
-  Virtual Indoor Station**. Ele tem uma aba para cada porteiro, com o card e a
-  atividade dele (toques, chamadas, registro).
+  Virtual Indoor Station**. Ele tem uma aba para cada porteiro, com o card, a
+  atividade dele (toques, chamadas, registro) e as visitas: quando a porta toca
+  (um relógio de 24 horas das últimas 8 semanas), as visitas de cada um dos
+  últimos 28 dias (com os fins de semana sombreados) e as de cada semana do
+  último trimestre. Verde é atendida, âmbar perdida e vermelho recusada, como as
+  teclas do card.
 - **O card**: **Hikvision Virtual Indoor Station** no seletor de cards de
   qualquer dashboard, com editor visual. Ele tem a cara da tela de um monitor
   interno:
@@ -224,7 +231,7 @@ Assistant ganha um reparo, que o remove do porteiro.
 e as entidades dele. Depois aponte a linha VoIP do porteiro para outro lugar (ou
 desligue-a) e desinstale a integração pelo Marketplace. Um aplicativo móvel
 sozinho é removido com **Excluir** nos três pontinhos da linha dele, debaixo do
-porteiro.
+porteiro. As visitas de um porteiro são esquecidas junto com ele.
 
 ## Como os dados são atualizados
 
@@ -245,6 +252,10 @@ porteiro.
   pede.
 - **Os celulares** são avisados quando a porta toca, e a notificação é retirada
   quando a chamada é atendida em outro lugar, perdida ou encerrada.
+- **As visitas** são contadas quando cada chamada termina, e as das últimas 8
+  semanas ficam guardadas no Home Assistant (quando a porta tocou e como a
+  chamada terminou, nada sobre quem tocou). Os gráficos são desenhados quando um
+  dashboard os mostra.
 
 ## Limitações conhecidas
 
@@ -312,6 +323,8 @@ conte como foi com o seu.
 | Output (diagnóstico) | O que uma saída configurável aciona: `electric_lock`, `doorbell`, `disabled` |
 | Input (diagnóstico) | Para que serve uma entrada configurável: `door_contact`, `exit_button`, `disabled` |
 | CPU usage, Video sessions (diagnóstico) | O quanto o porteiro está carregado: a CPU, e quantos clientes transmitem o vídeo dele |
+| Visits, Missed visits (sensores) | Quantas visitas chegaram, e quantas foram perdidas: contadores cujas estatísticas dão as visitas de cada dia, semana ou mês |
+| Visits by hour, Visits by day (imagens) | Gráficos: quando a porta toca (24 horas, as últimas 8 semanas) e as visitas de cada um dos últimos 28 dias; verde atendida, âmbar perdida, vermelho recusada |
 | Answer, Hang up, Reject (botões) | Agem na chamada atual |
 | Microphone volume, Speaker volume, Call volume (configuração) | Os volumes do porteiro |
 | Door open time (configuração) | Quanto tempo uma porta fica aberta, em segundos; uma por porta |

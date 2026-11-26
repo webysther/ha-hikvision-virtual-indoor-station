@@ -41,6 +41,14 @@
                 }
             }
         },
+        "image": {
+            "visits_by_hour": {
+                "default": "mdi:clock-time-four-outline"
+            },
+            "visits_by_day": {
+                "default": "mdi:chart-bar"
+            }
+        },
         "number": {
             "microphone_volume": {
                 "default": "mdi:microphone"
@@ -108,6 +116,12 @@
                     "ringing": "mdi:phone-ring",
                     "answered": "mdi:phone-in-talk"
                 }
+            },
+            "visits": {
+                "default": "mdi:account-group"
+            },
+            "missed_visits": {
+                "default": "mdi:phone-missed"
             },
             "output": {
                 "default": "mdi:electric-switch",

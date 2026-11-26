@@ -24,12 +24,14 @@ This file is an overview for language models. The README is the user guide; AGEN
 - Output (diagnostic sensor): what a changeable output drives (`electric_lock`, `doorbell`, `disabled`).
 - Input (diagnostic sensor): what a changeable input is wired for (`door_contact`, `exit_button`, `disabled`).
 - CPU usage and Video sessions (diagnostic sensors): how loaded the door station is.
+- Visits and Missed visits (sensors, `total_increasing`): counters of the rings, once each call is over; their long-term statistics give the visits of each day, week or month. The last 8 weeks of visits (time and outcome only) are kept in Home Assistant's storage and forgotten when the entry is removed.
+- Visits by hour and Visits by day (images, SVG without words): a 24-hour clock of when the door rings over the last 8 weeks, and the visits of each of the last 28 days; green answered, amber missed, red refused.
 - Settings (configuration numbers, selects and switches), as the door station offers them, read every 5 minutes: microphone, speaker and call volume; door open time (one per door); voice prompt when a door opens, and which; the camera image (day/night mode, brightness, contrast, saturation, sharpness, WDR; day/night sensitivity, WDR level, backlight compensation and its area, power line frequency disabled by default).
 
 ## Card, dashboard and panel
 
 - Card `custom:hikvision-indoor-station-card`, keys `device_id`, `talk_mode` (`hold` or `toggle`), `shortcuts` (entities, or `{entity, name, icon}`), `show_name` (false: icons only), `show_state` (false: no name and call state over the camera), `show_monitor`, `show_talk`, `show_ringer` (false: that key hidden), `columns` (keys per row, 1 to 12). A standard card laid out like an indoor station: the camera, then one row of keys (Answer, Hang up or Reject, Monitor, Push to talk, the ringer) with a key per door that opens and the shortcuts on its right.
-- Dashboard strategy `custom:hikvision-indoor-station`: one view per door station, with its card and activity.
+- Dashboard strategy `custom:hikvision-indoor-station`: one view per door station, with its card, its activity, and its visits (the two charts and a weekly statistics graph of the counters over a quarter).
 - Panel `/hikvision-indoor-station?entry=<entry_id>&call=<token>&answer=1`, out of the sidebar: a door station's card on its own page, opened by the phones' notifications.
 
 ## Mobile apps
