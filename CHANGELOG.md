@@ -54,6 +54,10 @@ station.
   buttons are pressed, scenes and scripts turned on, automations triggered, the
   rest toggled. The card has a visual editor: the door station, the way to talk
   and the shortcuts.
+- Phones with the Home Assistant app are added to a door station as its
+  extensions (**Add phone** on its entry), each with its own do not disturb and
+  whether it may open the door. Adding or changing one does not interrupt a
+  call.
 - The indoor station dashboard (`custom:hikvision-indoor-station`, in **Add
   dashboard**): a view for each door station, named after it, with its card and
   its activity.

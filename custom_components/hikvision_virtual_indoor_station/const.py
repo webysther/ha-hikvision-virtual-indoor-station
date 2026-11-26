@@ -73,3 +73,13 @@ CALL_IDLE: Final = "idle"
 CALL_RINGING: Final = "ringing"
 CALL_ANSWERED: Final = "answered"
 CALL_STATES: Final = [CALL_IDLE, CALL_RINGING, CALL_ANSWERED]
+
+# A phone of the household as an extension of a door station (a subentry): it is
+# notified when the door rings, and answers, refuses or opens the door from there.
+SUBENTRY_EXTENSION: Final = "extension"
+# The phone is not notified (its own do not disturb, for this door only).
+CONF_DO_NOT_DISTURB: Final = "do_not_disturb"
+# The phone's notification may open the door.
+CONF_OPEN_DOOR: Final = "open_door"
+# The integration of the Home Assistant app on phones, whose devices are extensions.
+MOBILE_APP: Final = "mobile_app"

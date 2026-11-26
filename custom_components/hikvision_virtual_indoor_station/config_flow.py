@@ -14,12 +14,35 @@ from aiohikvision.isapi.wire.faults import (
     NotIsapi,
     Unreachable,
 )
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
-from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    ConfigSubentryFlow,
+    SubentryFlowResult,
+)
+from homeassistant.const import (
+    CONF_DEVICE_ID,
+    CONF_HOST,
+    CONF_PASSWORD,
+    CONF_PORT,
+    CONF_USERNAME,
+)
+from homeassistant.core import callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.selector import DeviceSelector, DeviceSelectorConfig
 import probatio
 
-from .const import DEFAULT_PORT, DEFAULT_USERNAME, DOMAIN
+from .const import (
+    CONF_DO_NOT_DISTURB,
+    CONF_OPEN_DOOR,
+    DEFAULT_PORT,
+    DEFAULT_USERNAME,
+    DOMAIN,
+    MOBILE_APP,
+    SUBENTRY_EXTENSION,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,11 +68,34 @@ REAUTH_SCHEMA = probatio.Schema(
     }
 )
 
+# What an extension may do: changed at any time (reconfigure)
+EXTENSION_SETTINGS = {
+    probatio.Required(CONF_DO_NOT_DISTURB, default=False): bool,
+    probatio.Required(CONF_OPEN_DOOR, default=True): bool,
+}
+EXTENSION_SCHEMA = probatio.Schema(
+    {
+        probatio.Required(CONF_DEVICE_ID): DeviceSelector(
+            DeviceSelectorConfig(integration=MOBILE_APP)
+        ),
+        **EXTENSION_SETTINGS,
+    }
+)
+EXTENSION_SETTINGS_SCHEMA = probatio.Schema(EXTENSION_SETTINGS)
+
 
 class IndoorStationConfigFlow(ConfigFlow, domain=DOMAIN):
     """The config flow of a door station."""
 
     VERSION = 1
+
+    @classmethod
+    @callback
+    def async_get_supported_subentry_types(
+        cls, config_entry: ConfigEntry
+    ) -> dict[str, type[ConfigSubentryFlow]]:
+        """Return the subentries of a door station: the phones that ring with it."""
+        return {SUBENTRY_EXTENSION: ExtensionSubentryFlow}
 
     async def _read(
         self, data: Mapping[str, Any]
@@ -146,4 +192,44 @@ class IndoorStationConfigFlow(ConfigFlow, domain=DOMAIN):
                 USER_SCHEMA, user_input or dict(entry.data)
             ),
             errors=errors,
+        )
+
+
+class ExtensionSubentryFlow(ConfigSubentryFlow):
+    """A phone with the Home Assistant app as an extension of the door station.
+
+    Adding or changing an extension does not reload the door station: a call in
+    progress goes on, and the next ring reads the extensions as they are.
+    """
+
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Choose a phone, and what it may do."""
+        if user_input is not None:
+            device_id = user_input[CONF_DEVICE_ID]
+            taken = (sub.unique_id for sub in self._get_entry().subentries.values())
+            if device_id in taken:
+                return self.async_abort(reason="already_configured")
+            device = dr.async_get(self.hass).async_get(device_id)
+            name = (device.name_by_user or device.name) if device else None
+            return self.async_create_entry(
+                title=name or device_id, data=user_input, unique_id=device_id
+            )
+        return self.async_show_form(step_id="user", data_schema=EXTENSION_SCHEMA)
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Change what the phone may do; another phone is another extension."""
+        subentry = self._get_reconfigure_subentry()
+        if user_input is not None:
+            return self.async_update_and_abort(
+                self._get_entry(), subentry, data_updates=user_input
+            )
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self.add_suggested_values_to_schema(
+                EXTENSION_SETTINGS_SCHEMA, dict(subentry.data)
+            ),
         )

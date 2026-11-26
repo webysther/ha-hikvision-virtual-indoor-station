@@ -12,14 +12,25 @@ from aiohikvision.isapi.wire.faults import (
     NotIsapi,
     Unreachable,
 )
-from homeassistant.config_entries import SOURCE_USER
-from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.config_entries import (
+    SOURCE_USER,
+    ConfigEntryState,
+    SubentryFlowResult,
+)
+from homeassistant.const import CONF_DEVICE_ID, CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers import device_registry as dr
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.hikvision_virtual_indoor_station.const import DOMAIN
+from custom_components.hikvision_virtual_indoor_station.const import (
+    CONF_DO_NOT_DISTURB,
+    CONF_OPEN_DOOR,
+    DOMAIN,
+    MOBILE_APP,
+    SUBENTRY_EXTENSION,
+)
 
 from .conftest import DOOR_IP, ENTRY_DATA, UNIQUE_ID
 
@@ -165,3 +176,74 @@ async def test_reconfiguring_to_another_door(
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "wrong_device"
     assert loaded.data[CONF_HOST] == DOOR_IP
+
+
+def phone(hass: HomeAssistant, name: str = "Pixel") -> str:
+    """Add a phone with the Home Assistant app, and return its device id."""
+    app = MockConfigEntry(domain=MOBILE_APP)
+    app.add_to_hass(hass)
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=app.entry_id, identifiers={(MOBILE_APP, name)}, name=name
+    )
+    return device.id
+
+
+async def add_phone(
+    hass: HomeAssistant, entry: MockConfigEntry, device_id: str, **settings: bool
+) -> SubentryFlowResult:
+    """Add a phone to a door station as its extension."""
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_EXTENSION), context={"source": SOURCE_USER}
+    )
+    assert result["type"] is FlowResultType.FORM
+    return await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_DEVICE_ID: device_id, **settings}
+    )
+
+
+async def test_adding_a_phone(
+    hass: HomeAssistant, loaded: MockConfigEntry, door: MagicMock
+) -> None:
+    """A phone becomes an extension named after it, once, without a reload."""
+    pixel = phone(hass)
+    result = await add_phone(hass, loaded, pixel)
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    (extension,) = loaded.subentries.values()
+    assert extension.title == "Pixel"
+    assert extension.unique_id == pixel
+    assert dict(extension.data) == {
+        CONF_DEVICE_ID: pixel,
+        CONF_DO_NOT_DISTURB: False,
+        CONF_OPEN_DOOR: True,
+    }
+    # A call in progress goes on: the door station is not set up again
+    await hass.async_block_till_done()
+    assert loaded.state is ConfigEntryState.LOADED
+    assert door.read_info.call_count == 1
+    result = await add_phone(hass, loaded, pixel)
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+    # A phone that left the device registry keeps its id as its name
+    result = await add_phone(hass, loaded, "gone", do_not_disturb=True)
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["title"] == "gone"
+
+
+async def test_changing_a_phone(hass: HomeAssistant, loaded: MockConfigEntry) -> None:
+    """What a phone may do changes; the phone stays the same."""
+    pixel = phone(hass)
+    await add_phone(hass, loaded, pixel)
+    (subentry_id,) = loaded.subentries
+    result = await loaded.start_subentry_reconfigure_flow(hass, subentry_id)
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "reconfigure"
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_DO_NOT_DISTURB: True, CONF_OPEN_DOOR: False}
+    )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert dict(loaded.subentries[subentry_id].data) == {
+        CONF_DEVICE_ID: pixel,
+        CONF_DO_NOT_DISTURB: True,
+        CONF_OPEN_DOOR: False,
+    }

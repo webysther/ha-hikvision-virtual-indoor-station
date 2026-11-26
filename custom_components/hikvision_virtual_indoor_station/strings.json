@@ -57,6 +57,47 @@
             "reconfigure_successful": "The door station was changed."
         }
     },
+    "config_subentries": {
+        "extension": {
+            "entry_type": "Phone",
+            "initiate_flow": {
+                "user": "Add phone",
+                "reconfigure": "Change phone"
+            },
+            "step": {
+                "user": {
+                    "title": "Add a phone",
+                    "description": "A phone with the Home Assistant app rings when the door station does: its notification shows the door, and answers, refuses or opens the door.",
+                    "data": {
+                        "device_id": "Phone",
+                        "do_not_disturb": "Do not disturb",
+                        "open_door": "Can open the door"
+                    },
+                    "data_description": {
+                        "device_id": "A device of the Home Assistant app (Mobile App).",
+                        "do_not_disturb": "The phone is not notified when this door station rings.",
+                        "open_door": "The notification has a button that opens the door."
+                    }
+                },
+                "reconfigure": {
+                    "title": "Change the phone",
+                    "description": "What this phone does when the door station rings.",
+                    "data": {
+                        "do_not_disturb": "Do not disturb",
+                        "open_door": "Can open the door"
+                    },
+                    "data_description": {
+                        "do_not_disturb": "The phone is not notified when this door station rings.",
+                        "open_door": "The notification has a button that opens the door."
+                    }
+                }
+            },
+            "abort": {
+                "already_configured": "This phone already rings with this door station.",
+                "reconfigure_successful": "The phone was changed."
+            }
+        }
+    },
     "entity": {
         "binary_sensor": {
             "sip_registered": {

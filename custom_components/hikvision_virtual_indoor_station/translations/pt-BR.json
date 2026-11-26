@@ -57,6 +57,47 @@
             "reconfigure_successful": "O porteiro foi alterado."
         }
     },
+    "config_subentries": {
+        "extension": {
+            "entry_type": "Celular",
+            "initiate_flow": {
+                "user": "Adicionar celular",
+                "reconfigure": "Alterar celular"
+            },
+            "step": {
+                "user": {
+                    "title": "Adicionar um celular",
+                    "description": "Um celular com o app do Home Assistant toca quando o porteiro toca: a notificação mostra a porta, e atende, recusa ou abre a porta.",
+                    "data": {
+                        "device_id": "Celular",
+                        "do_not_disturb": "Não perturbe",
+                        "open_door": "Pode abrir a porta"
+                    },
+                    "data_description": {
+                        "device_id": "Um dispositivo do app do Home Assistant (Mobile App).",
+                        "do_not_disturb": "O celular não é avisado quando este porteiro toca.",
+                        "open_door": "A notificação tem um botão que abre a porta."
+                    }
+                },
+                "reconfigure": {
+                    "title": "Alterar o celular",
+                    "description": "O que este celular faz quando o porteiro toca.",
+                    "data": {
+                        "do_not_disturb": "Não perturbe",
+                        "open_door": "Pode abrir a porta"
+                    },
+                    "data_description": {
+                        "do_not_disturb": "O celular não é avisado quando este porteiro toca.",
+                        "open_door": "A notificação tem um botão que abre a porta."
+                    }
+                }
+            },
+            "abort": {
+                "already_configured": "Este celular já toca com este porteiro.",
+                "reconfigure_successful": "O celular foi alterado."
+            }
+        }
+    },
     "entity": {
         "binary_sensor": {
             "sip_registered": {

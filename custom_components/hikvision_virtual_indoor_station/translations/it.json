@@ -57,6 +57,47 @@
             "reconfigure_successful": "Il posto esterno è stato modificato."
         }
     },
+    "config_subentries": {
+        "extension": {
+            "entry_type": "Telefono",
+            "initiate_flow": {
+                "user": "Aggiungi telefono",
+                "reconfigure": "Modifica telefono"
+            },
+            "step": {
+                "user": {
+                    "title": "Aggiungi un telefono",
+                    "description": "Un telefono con l'app di Home Assistant suona quando suona il citofono: la sua notifica mostra la porta, e risponde, rifiuta o apre la porta.",
+                    "data": {
+                        "device_id": "Telefono",
+                        "do_not_disturb": "Non disturbare",
+                        "open_door": "Può aprire la porta"
+                    },
+                    "data_description": {
+                        "device_id": "Un dispositivo dell'app di Home Assistant (Mobile App).",
+                        "do_not_disturb": "Il telefono non viene avvisato quando suona questo citofono.",
+                        "open_door": "La notifica ha un pulsante che apre la porta."
+                    }
+                },
+                "reconfigure": {
+                    "title": "Modifica il telefono",
+                    "description": "Cosa fa questo telefono quando suona il citofono.",
+                    "data": {
+                        "do_not_disturb": "Non disturbare",
+                        "open_door": "Può aprire la porta"
+                    },
+                    "data_description": {
+                        "do_not_disturb": "Il telefono non viene avvisato quando suona questo citofono.",
+                        "open_door": "La notifica ha un pulsante che apre la porta."
+                    }
+                }
+            },
+            "abort": {
+                "already_configured": "Questo telefono suona già con questo citofono.",
+                "reconfigure_successful": "Il telefono è stato modificato."
+            }
+        }
+    },
     "entity": {
         "binary_sensor": {
             "sip_registered": {
