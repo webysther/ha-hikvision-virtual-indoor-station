@@ -72,8 +72,9 @@ custom_components/hikvision_virtual_indoor_station/
   diagnostics.py   masked: no addresses, names or account
   dashboard.py     serves frontend/ and has the frontend load it
   frontend/        JavaScript without build (// @ts-check + JSDoc):
-                   hikvision-indoor-station-card.js (the card, laid out like
-                   a wall monitor), hikvision-indoor-station-dashboard.js (the
+                   hikvision-indoor-station-card.js (the card: a standard
+                   card of the theme, laid out like an indoor station; only
+                   its keys have colors), hikvision-indoor-station-dashboard.js (the
                    dashboard strategy, a view per door station, and the
                    helpers the card shares)
   strings.json, translations/ (en, it, pt-BR), icons.json, quality_scale.yaml,

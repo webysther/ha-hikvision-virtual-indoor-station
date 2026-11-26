@@ -1,9 +1,9 @@
 // @ts-check
 /**
- * The Hikvision Virtual Indoor Station card: the screen of an indoor station, laid out
- * like a wall monitor. On top the door's camera; under it the state of the call and the
- * buttons it allows (answer and refuse while it rings, hang up while it is answered,
- * monitor while idle, mute the ringer); then push-to-talk and a key for each door.
+ * The Hikvision Virtual Indoor Station card: a standard card of the theme, laid out like
+ * an indoor station. On top the door's camera with the state of the call; under it the
+ * keys (answer and refuse while it rings, hang up while it is answered, monitor while
+ * idle, push-to-talk, mute the ringer); then a key for each door and the shortcuts.
  *
  * The card follows its door station through the websocket command
  * `hikvision_virtual_indoor_station/subscribe` (the latest call and its id), and every
@@ -101,6 +101,25 @@ export function callStateOf(snapshot) {
  */
 export function callStateName(hass, state) {
   return translated(hass, `entity.sensor.call.state.${state}`) ?? state;
+}
+
+/**
+ * Return the label over the screen: the state of the call, with its time once answered,
+ * or "Live" while someone monitors the door (the line is idle, but the screen is not).
+ *
+ * @param {Hass} hass
+ * @param {CallState} state
+ * @param {{ monitoring?: boolean, answeredAt?: string | null, now?: number }} [more]
+ * @returns {{ text: string, tone: CallState | "live" }}
+ */
+export function screenLabel(
+  hass,
+  state,
+  { monitoring = false, answeredAt, now = Date.now() } = {},
+) {
+  if (state === "idle" && monitoring) return { text: textsIn(hass.language).live, tone: "live" };
+  const time = state === "answered" ? elapsed(answeredAt, now) : null;
+  return { text: [callStateName(hass, state), time].filter(Boolean).join(" "), tone: state };
 }
 
 /**
@@ -523,47 +542,47 @@ export class Ringer {
 }
 
 if (typeof customElements !== "undefined") {
-  // The look of the indoor station the card copies (a DS-KH6110-WE1): a dark bezel, the
-  // screen, and a row of keys under it, green to answer and red to hang up. Its own
-  // colors, whatever the theme, as the device has.
+  // A standard card of the theme, laid out like an indoor station: the door's camera on
+  // top, its name and the state of the call over it, and a row of keys under it, green to
+  // answer and red to hang up. The rest takes the colors of the theme.
   const STYLE = `
-    ha-card { background: none; border: none; box-shadow: none; overflow: visible; }
-    .device { color: #e6e6e6; border-radius: 28px; padding: 14px 14px 8px;
-      background: linear-gradient(160deg, #313131 0%, #161616 55%, #0b0b0b 100%);
-      border: 1px solid #3a3a3a;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08); }
-    .screen { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: 12px;
-      overflow: hidden; border: 2px solid #050505; }
-    .media, .media > * { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    ha-card { overflow: hidden; }
+    .screen { position: relative; aspect-ratio: 16 / 9; background: #000; }
+    .media, .media > * { position: absolute; inset: 0; width: 100%; height: 100%; }
+    /* A door station takes its picture at a size of its own, not always the shape of its
+       stream: the picture is drawn to the shape of the live video, so neither is distorted. */
+    .media > img { object-fit: fill; }
     .overlay { position: absolute; inset: 0 0 auto 0; display: flex; align-items: center;
-      justify-content: space-between; gap: 8px; padding: 8px 12px; font-size: 14px;
-      background: linear-gradient(rgba(0, 0, 0, 0.7), transparent); pointer-events: none; }
+      justify-content: space-between; gap: 8px; padding: 8px 12px; font-size: 14px; color: #fff;
+      background: linear-gradient(rgba(0, 0, 0, 0.6), transparent); pointer-events: none; }
     .name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .chip { padding: 2px 10px; border-radius: 999px; white-space: nowrap;
-      background: rgba(255, 255, 255, 0.14); font-variant-numeric: tabular-nums; }
-    .chip.ringing { background: #2e9e3a; color: #fff; animation: pulse 1s ease-in-out infinite; }
-    .chip.answered { background: #1e78d6; color: #fff; }
+      background: rgba(0, 0, 0, 0.45); font-variant-numeric: tabular-nums; }
+    .chip.ringing { background: var(--success-color, #43a047);
+      animation: pulse 1s ease-in-out infinite; }
+    .chip.answered { background: var(--info-color, #039be5); }
+    .chip.live { background: var(--error-color, #db4437); }
     .warning { position: absolute; inset: auto 0 0 0; padding: 6px 12px; font-size: 13px;
-      background: rgba(0, 0, 0, 0.75); color: #ffb300; }
+      background: rgba(0, 0, 0, 0.7); color: var(--warning-color, #ffa600); }
     .keys { display: flex; justify-content: space-around; align-items: flex-start; gap: 2px;
-      padding: 10px 0 2px; }
-    .keys.extra { flex-wrap: wrap; justify-content: center; border-top: 1px solid #2a2a2a;
-      margin-top: 6px; }
+      padding: 8px 8px 4px; }
+    .keys.extra { flex-wrap: wrap; justify-content: center; padding-bottom: 8px;
+      border-top: 1px solid var(--divider-color); }
     .keys:empty { display: none; }
     .key { flex: 1 1 0; min-width: 56px; max-width: 96px; display: flex; flex-direction: column;
-      align-items: center; gap: 4px; padding: 6px 2px; border: none; border-radius: 14px;
-      background: none; color: #e6e6e6; font: inherit; font-size: 11px; cursor: pointer;
-      -webkit-tap-highlight-color: transparent; }
-    .key ha-icon { --mdc-icon-size: 30px; }
-    .key .caption { color: #9a9a9a; line-height: 1.2; text-align: center; }
-    .key:hover:not(:disabled), .key:focus-visible { background: rgba(255, 255, 255, 0.07); outline: none; }
-    .key:disabled { opacity: 0.28; cursor: default; }
-    .key.accept { color: #3fd14a; }
-    .key.decline { color: #f2453b; }
-    .key.active { color: #4fc3f7; }
-    .key.active .caption { color: #4fc3f7; }
+      align-items: center; gap: 4px; padding: 6px 2px; border: none; border-radius: 12px;
+      background: none; color: var(--primary-text-color); font: inherit; font-size: 11px;
+      cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .key ha-icon { --mdc-icon-size: 28px; }
+    .key .caption { color: var(--secondary-text-color); line-height: 1.2; text-align: center; }
+    .key:hover:not(:disabled), .key:focus-visible {
+      background: var(--secondary-background-color); outline: none; }
+    .key:disabled { opacity: 0.38; cursor: default; }
+    .key.accept { color: var(--success-color, #43a047); }
+    .key.decline { color: var(--error-color, #db4437); }
+    .key.active, .key.active .caption { color: var(--primary-color); }
     .key.talk { touch-action: none; user-select: none; -webkit-user-select: none; }
-    .key.talk.active { background: rgba(79, 195, 247, 0.12); }
+    .key.talk.active { background: var(--secondary-background-color); }
     @keyframes pulse { 50% { opacity: 0.6; } }
   `;
 
@@ -844,7 +863,7 @@ if (typeof customElements !== "undefined") {
       microphone.stop();
     }
 
-    /** Build the device once: the screen keeps its stream and the keys their presses. */
+    /** Build the card once: the screen keeps its stream and the keys their presses. */
     #build() {
       const root = this.shadowRoot ?? this.attachShadow({ mode: "open" });
       const style = document.createElement("style");
@@ -852,7 +871,6 @@ if (typeof customElements !== "undefined") {
       /** @param {string} tag @param {string} className */
       const part = (tag, className) => Object.assign(document.createElement(tag), { className });
       const card = document.createElement("ha-card");
-      const device = part("div", "device");
       const screen = part("div", "screen");
       const overlay = part("div", "overlay");
       /** @type {Parts} */
@@ -867,8 +885,7 @@ if (typeof customElements !== "undefined") {
       };
       overlay.append(parts.name, parts.state);
       screen.append(parts.media, overlay, parts.warning);
-      device.append(screen, parts.keys, parts.extra);
-      card.append(device);
+      card.append(screen, parts.keys, parts.extra);
       root.replaceChildren(style, card);
       for (const name of /** @type {KeyName[]} */ ([
         "answer",
@@ -947,10 +964,12 @@ if (typeof customElements !== "undefined") {
       parts.keys.hidden = false;
       parts.state.hidden = false;
       parts.name.textContent = station.name;
-      parts.state.className = `chip ${state}`;
-      const time =
-        state === "answered" ? elapsed(this.#snapshot?.call?.answered_at, Date.now()) : null;
-      parts.state.textContent = [callStateName(hass, state), time].filter(Boolean).join(" ");
+      const label = screenLabel(hass, state, {
+        monitoring: this.#monitoring,
+        answeredAt: this.#snapshot?.call?.answered_at,
+      });
+      parts.state.className = `chip ${label.tone}`;
+      parts.state.textContent = label.text;
       this.#tick(state === "answered");
       this.#ring(state === "ringing" && !this.#ringMuted);
       const warnings = [];

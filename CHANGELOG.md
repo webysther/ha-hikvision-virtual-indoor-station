@@ -31,9 +31,10 @@ station.
 - Icons for every entity and state, and original brand art.
 - Diagnostics without addresses, names or account.
 - The indoor station card (`custom:hikvision-indoor-station-card`), in the card
-  picker, laid out like a wall monitor (a DS-KH6110-WE1): a dark bezel, the
-  door's camera on its screen with the name and the state of the call, and the
-  keys under it, always in the same places and lit when they can be pressed:
+  picker: a standard card of the theme, laid out like an indoor station. The
+  door's camera is on top, with the name and the state of the call (**Live**
+  while monitoring); its picture keeps the shape of the live video. The keys
+  under it are always in the same places and lit when they can be pressed:
   Answer (green), Hang up (red, refusing a call that rings), Monitor, Push to
   talk and the ringer. The camera plays live while the door rings, during a call
   or while monitoring, and shows its picture otherwise; the door's sound plays

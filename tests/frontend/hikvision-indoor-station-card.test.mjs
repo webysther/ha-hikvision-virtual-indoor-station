@@ -20,6 +20,7 @@ import {
   keyName,
   locksOf,
   openDoorMessage,
+  screenLabel,
   screenOf,
   shortcutService,
   shortcutView,
@@ -54,6 +55,29 @@ describe("callStateOf", () => {
     });
     assert.equal(callStateName(hass, "ringing"), "Tocando");
     assert.equal(callStateName(hass, "idle"), "idle");
+  });
+
+  it("is said over the screen: live while monitored, timed once answered", () => {
+    const hass = {
+      ...homeAssistant(["front"], {
+        "component.hikvision_virtual_indoor_station.entity.sensor.call.state.idle": "Livre",
+        "component.hikvision_virtual_indoor_station.entity.sensor.call.state.answered":
+          "Em chamada",
+      }),
+      language: "pt-BR",
+    };
+    assert.deepEqual(screenLabel(hass, "idle"), { text: "Livre", tone: "idle" });
+    // Monitoring shows the door live: the line is idle, the screen is not
+    assert.deepEqual(screenLabel(hass, "idle", { monitoring: true }), {
+      text: TEXTS["pt-BR"].live,
+      tone: "live",
+    });
+    const answeredAt = "2026-11-26T10:00:00Z";
+    const now = Date.parse(answeredAt) + 65_000;
+    assert.deepEqual(screenLabel(hass, "answered", { answeredAt, now }), {
+      text: "Em chamada 1:05",
+      tone: "answered",
+    });
   });
 });
 
