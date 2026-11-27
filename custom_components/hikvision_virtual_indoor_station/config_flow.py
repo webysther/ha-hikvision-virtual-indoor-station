@@ -6,10 +6,9 @@ from collections.abc import Mapping
 import logging
 from typing import Any
 
-from aiohikvision import DoorStation, DoorStationInfo, NotADoorStation
+from aiohikvision import DoorStation, DoorStationInfo, HikvisionError, NotADoorStation
 from aiohikvision.isapi.wire.faults import (
     BadCredentials,
-    BridgeFault,
     LockedOut,
     NotIsapi,
     Unreachable,
@@ -54,7 +53,7 @@ USER_SCHEMA = probatio.Schema(
     }
 )
 # What each refusal of the device shows, the most specific first
-ERRORS: tuple[tuple[type[BridgeFault], str], ...] = (
+ERRORS: tuple[tuple[type[HikvisionError], str], ...] = (
     (BadCredentials, "invalid_auth"),
     (LockedOut, "locked_out"),
     (NotADoorStation, "not_door_station"),
@@ -110,7 +109,7 @@ class IndoorStationConfigFlow(ConfigFlow, domain=DOMAIN):
         )
         try:
             return await door.read_info(), None
-        except BridgeFault as err:
+        except HikvisionError as err:
             for fault, error in ERRORS:
                 if isinstance(err, fault):
                     return None, error

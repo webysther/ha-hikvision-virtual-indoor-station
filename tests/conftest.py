@@ -13,18 +13,25 @@ from typing import Any, ClassVar
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from aiohikvision import (
+    AudioCodec,
     CallError,
     CallState,
     DoorCall,
     DoorStationHealth,
     DoorStationInfo,
     EndReason,
+    Firmware,
+    Identity,
+    Stream,
+    StreamId,
+    Streaming,
     TalkbackStats,
+    VideoCodec,
+    VideoFormat,
 )
 from aiohikvision.isapi.model.features.inputs import Input, InputUse
 from aiohikvision.isapi.model.features.outputs import Output, OutputUse
 from aiohikvision.isapi.model.features.talk import TalkChannel
-from aiohikvision.isapi.model.inventory import Identity
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 import pytest
@@ -41,8 +48,7 @@ IDENTITY = Identity(
     serial="DS-KD8003-IME1(B)0120250101ENFX0000001",
     model="DS-KD8003-IME1(B)",
     name="Door Station",
-    firmware="V3.7.3",
-    firmware_build="build 260915",
+    firmware=Firmware.parse("V3.7.3", "build 260915"),
     mac="00:00:5e:00:53:01",
     device_type="VIS",
     hardware="1-1-0",
@@ -62,6 +68,21 @@ INFO = DoorStationInfo(
         Input(2, "AI2", InputUse.DISABLED, (InputUse.DISABLED, InputUse.DOOR_CONTACT)),
         Input(3, "AI3", InputUse.EXIT_BUTTON, (InputUse.EXIT_BUTTON,)),
         Input(4, "AI4", InputUse.DISABLED, (InputUse.DISABLED, InputUse.EXIT_BUTTON)),
+    ),
+)
+# The streams of a DS-KD8003 (V3.7.3): 1080p and 720p H.264, key frames 2 s apart
+STREAMS = (
+    Stream(
+        StreamId(1, 1),
+        "REDACTED",
+        VideoFormat(VideoCodec.H264, 1920, 1080, 30.0, 60, 4096),
+        AudioCodec.G711_ULAW,
+    ),
+    Stream(
+        StreamId(1, 2),
+        "REDACTED",
+        VideoFormat(VideoCodec.H264, 1280, 720, 30.0, 60, 2048),
+        AudioCodec.G711_ULAW,
     ),
 )
 UNIQUE_ID = IDENTITY.stable_id
@@ -199,15 +220,41 @@ def call_server() -> Generator[type[FakeCallServer]]:
         yield FakeCallServer
 
 
+def rtsp_url(stream: StreamId, *, credentials: bool = True) -> str:
+    """Return the RTSP address of a stream, as the door station's Streaming does."""
+    account = "admin:s3cret-pass@" if credentials else ""
+    return f"rtsp://{account}{DOOR_IP}:554/Streaming/Channels/{stream.isapi}"
+
+
 @pytest.fixture
-def door() -> Generator[MagicMock]:
-    """Mock the DoorStation of aiohikvision."""
+def streaming() -> Generator[MagicMock]:
+    """Mock the streams of the door station (aiohikvision's Device and Streaming)."""
+    with patch(f"{PACKAGE}.Device") as device_class:
+        service = MagicMock(spec=Streaming)
+        service.streams.return_value = STREAMS
+        service.snapshot.return_value = b"\xff\xd8jpeg\xff\xd9"
+        service.rtsp_url.side_effect = rtsp_url
+        service.rtsp_port.return_value = 554
+        device = MagicMock(streaming=service)
+        # The report of the device, as aiohikvision makes it (anonymized), in short
+        device.report = AsyncMock(
+            return_value=MagicMock(as_dict=MagicMock(return_value={"library": "0.2.0"}))
+        )
+        device_class.from_link = AsyncMock(return_value=device)
+        yield service
+
+
+@pytest.fixture
+def door(streaming: MagicMock) -> Generator[MagicMock]:
+    """Mock the DoorStation of aiohikvision, and its streams."""
     with (
         patch(f"{PACKAGE}.DoorStation", autospec=True) as door_class,
         patch(f"{PACKAGE}.config_flow.DoorStation", new=door_class),
     ):
         station = door_class.return_value
         station.read_info.return_value = INFO
+        # Its link, which the Device of its streams shares
+        station.link = MagicMock()
         station.info = INFO
         station.read_outputs.return_value = INFO.outputs
         station.read_inputs.return_value = INFO.inputs
@@ -215,10 +262,6 @@ def door() -> Generator[MagicMock]:
         station.read_health.return_value = DoorStationHealth(88, 5)
         station.read_settings.return_value = ()
         station.read_setting_values.return_value = {}
-        station.rtsp_url.return_value = (
-            f"rtsp://admin:s3cret-pass@{DOOR_IP}:554/Streaming/Channels/101"
-        )
-        station.snapshot.return_value = b"\xff\xd8jpeg\xff\xd9"
         yield station
 
 

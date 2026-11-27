@@ -296,11 +296,18 @@ visits of a door station are forgotten with it.
 - **The video lags or freezes.** Look at **Video sessions** and **CPU usage**:
   every client that streams the door station (Home Assistant, a recorder, the
   Hik-Connect app) loads it, and with its CPU near 90% the video slows down.
-  Stream it from fewer places.
+  Stream it from fewer places, or play its **Sub stream** camera (turn it on
+  first): a smaller picture, lighter for the door station and the phone.
 
-Enable debug logs (**Settings → Devices & services → Hikvision Virtual Indoor
-Station → Enable debug logging**) and download the diagnostics before opening an
-issue: they leave out addresses, names and the account.
+Before opening an issue, turn on the debug logs (**Settings → Devices & services →
+Hikvision Virtual Indoor Station → Enable debug logging**), restart the
+integration, do what fails, then turn them off: Home Assistant downloads the log.
+It is short and says what a fix needs, once: how the door station was recognised
+(model, firmware, what it can do, the behaviours set for its model), what was set up
+(doors, inputs, outputs, speaker, cameras, SIP), its streams, and each request that
+fails. Attach it with the diagnostics (**Download diagnostics** on the device page):
+they hold the door station's report, read without changing anything and without
+addresses, names or the account.
 
 ## Supported devices
 
@@ -313,7 +320,8 @@ please report yours.
 
 | Entity | What it does |
 | --- | --- |
-| Camera | The door's picture and sound (RTSP), and snapshots |
+| Camera | The door's picture and sound (RTSP), and snapshots: its main stream |
+| Sub stream (camera, disabled by default) | The same, lighter to play (720p on a DS-KD8003); one camera per other stream of the door station |
 | Doorbell (event) | `ring`, `answered`, `rejected`, `missed`, `ended`, with the call's id |
 | Call (sensor) | `idle`, `ringing`, `answered` |
 | SIP registration (diagnostic) | On while the door station can call Home Assistant |

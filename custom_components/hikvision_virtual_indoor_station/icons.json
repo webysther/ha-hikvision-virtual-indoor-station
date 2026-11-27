@@ -25,6 +25,17 @@
                 "default": "mdi:phone-cancel"
             }
         },
+        "camera": {
+            "sub_stream": {
+                "default": "mdi:cctv"
+            },
+            "third_stream": {
+                "default": "mdi:cctv"
+            },
+            "stream": {
+                "default": "mdi:cctv"
+            }
+        },
         "event": {
             "doorbell": {
                 "default": "mdi:doorbell",

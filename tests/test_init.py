@@ -2,21 +2,20 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
 from datetime import timedelta
 import io
+import logging
 from types import MappingProxyType
 from unittest.mock import MagicMock, patch
 
-from aiohikvision import CallError, DoorStationInfo, Registration
-from aiohikvision.isapi.model.inventory import StreamSpec
+from aiohikvision import CallError, DoorStationInfo, Firmware, Registration, StreamId
 from aiohikvision.isapi.wire.faults import BadCredentials, Unreachable
 from homeassistant.components.camera import async_get_image, async_get_stream_source
 from homeassistant.config_entries import ConfigEntryState, ConfigSubentry
 from homeassistant.const import CONF_DEVICE_ID, CONF_HOST, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.util import dt as dt_util
 from PIL import Image
 import pytest
@@ -64,17 +63,78 @@ async def test_the_door_station_and_its_entities(
     assert server.transport.allowed_hosts == {DOOR_IP}
 
 
-async def test_the_camera(
-    hass: HomeAssistant, loaded: MockConfigEntry, door: MagicMock
+async def test_the_cameras_of_the_streams(
+    hass: HomeAssistant,
+    loaded: MockConfigEntry,
+    streaming: MagicMock,
+    entity_registry: er.EntityRegistry,
 ) -> None:
-    """The RTSP stream for WebRTC, and snapshots from the door station."""
+    """A camera per stream: the main one is the door station's, the others start off."""
     source = await async_get_stream_source(hass, "camera.door_station")
     assert source == f"rtsp://admin:s3cret-pass@{DOOR_IP}:554/Streaming/Channels/101"
     image = await async_get_image(hass, "camera.door_station")
     assert image.content == b"\xff\xd8jpeg\xff\xd9"
-    door.snapshot.side_effect = Unreachable("busy")
+    streaming.snapshot.side_effect = Unreachable("busy")
     with pytest.raises(HomeAssistantError):
         await async_get_image(hass, "camera.door_station")
+    sub = entity_registry.async_get("camera.door_station_sub_stream")
+    assert sub is not None
+    assert sub.unique_id == f"{UNIQUE_ID}_camera_102"
+    assert sub.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+
+
+async def test_a_sub_stream_turned_on(
+    hass: HomeAssistant,
+    entry: MockConfigEntry,
+    door: MagicMock,
+    streaming: MagicMock,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """The sub stream, once turned on, plays its own RTSP stream and pictures."""
+    entity_registry.async_get_or_create(
+        "camera",
+        DOMAIN,
+        f"{UNIQUE_ID}_camera_102",
+        suggested_object_id="door_station_sub_stream",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    source = await async_get_stream_source(hass, "camera.door_station_sub_stream")
+    assert source == f"rtsp://admin:s3cret-pass@{DOOR_IP}:554/Streaming/Channels/102"
+    streaming.snapshot.return_value = jpeg(704, 576)
+    image = await async_get_image(hass, "camera.door_station_sub_stream")
+    assert streaming.snapshot.call_args.args == (StreamId(1, 2),)
+    with Image.open(io.BytesIO(image.content)) as picture:
+        assert picture.size == (1024, 576)
+
+
+async def test_a_door_station_that_does_not_list_its_streams(
+    hass: HomeAssistant, entry: MockConfigEntry, door: MagicMock, streaming: MagicMock
+) -> None:
+    """Without a list of streams, the camera of its main stream is still there."""
+    streaming.streams.return_value = ()
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert hass.states.get("camera.door_station") is not None
+    image = await async_get_image(hass, "camera.door_station")
+    assert image.content == b"\xff\xd8jpeg\xff\xd9"
+
+
+async def test_a_door_station_without_video(
+    hass: HomeAssistant, entry: MockConfigEntry, door: MagicMock
+) -> None:
+    """A door station whose capabilities show no video has no camera."""
+    with patch(
+        "custom_components.hikvision_virtual_indoor_station.Device.from_link",
+        return_value=MagicMock(streaming=None),
+    ):
+        entry.add_to_hass(hass)
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    assert hass.states.get("camera.door_station") is None
+    assert hass.states.get("sensor.door_station_call") is not None
 
 
 def jpeg(width: int, height: int) -> bytes:
@@ -85,24 +145,18 @@ def jpeg(width: int, height: int) -> bytes:
 
 
 async def test_the_picture_takes_the_shape_of_the_stream(
-    hass: HomeAssistant, entry: MockConfigEntry, door: MagicMock
+    hass: HomeAssistant, loaded: MockConfigEntry, streaming: MagicMock
 ) -> None:
     """A DS-KD8003 takes its pictures 11:9 while it streams 16:9: they are widened."""
-    door.read_info.return_value = replace(
-        INFO, stream=StreamSpec("101", "H.264", width=1280, height=720)
-    )
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
-    door.snapshot.return_value = jpeg(704, 576)
+    streaming.snapshot.return_value = jpeg(704, 576)
     image = await async_get_image(hass, "camera.door_station")
     with Image.open(io.BytesIO(image.content)) as picture:
         assert picture.size == (1024, 576)
     # A picture in the shape of the stream, or one that cannot be read, is left as it is
-    door.snapshot.return_value = sixteen_by_nine = jpeg(1920, 1080)
+    streaming.snapshot.return_value = sixteen_by_nine = jpeg(1920, 1080)
     image = await async_get_image(hass, "camera.door_station")
     assert image.content == sixteen_by_nine
-    door.snapshot.return_value = b"\xff\xd8jpeg\xff\xd9"
+    streaming.snapshot.return_value = b"\xff\xd8jpeg\xff\xd9"
     image = await async_get_image(hass, "camera.door_station")
     assert image.content == b"\xff\xd8jpeg\xff\xd9"
 
@@ -165,7 +219,9 @@ async def test_two_door_stations_share_the_sip_server(
 ) -> None:
     """One server hears both; it stops with the last one."""
     other_identity = DoorStationInfo(
-        identity=type(IDENTITY)(serial="S2", model="M", name="Back Door", firmware="F"),
+        identity=type(IDENTITY)(
+            serial="S2", model="M", name="Back Door", firmware=Firmware.parse("F")
+        ),
         doors=(1,),
         call_status=False,
         talk=None,
@@ -304,9 +360,52 @@ async def test_diagnostics(
         "kept": 0,
         "total": {"answered": 0, "rejected": 0, "missed": 0},
     }
+    # The device's report (aiohikvision's, anonymized), and the streams
+    assert data["report"] == {"library": "0.2.0"}
+    assert [stream["id"] for stream in data["streams"]] == ["101", "102"]
+    assert data["streams"][0]["video"]["width"] == 1920
+    assert data["rtsp_port"] == 554
     assert "Pixel" not in str(data)
     assert DOOR_IP not in str(data)
     assert INFO.identity.serial not in str(data)
+
+
+async def test_diagnostics_of_a_device_that_does_not_answer(
+    hass: HomeAssistant, loaded: MockConfigEntry
+) -> None:
+    """The report of a door station that does not answer says why."""
+    device = loaded.runtime_data.device
+    device.report.side_effect = Unreachable("timeout")
+    data = await async_get_config_entry_diagnostics(hass, loaded)
+    assert data["report"] == {"error": "Unreachable"}
+
+
+async def test_what_the_debug_log_says_of_the_setup(
+    hass: HomeAssistant,
+    entry: MockConfigEntry,
+    door: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """One record says what was set up: doors, inputs, outputs, speaker, cameras."""
+    caplog.set_level(
+        logging.DEBUG, logger="custom_components.hikvision_virtual_indoor_station"
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    summary = entry.runtime_data.summary()
+    assert summary == [
+        f"Set up DS-KD8003-IME1(B) V3.7.3 build 260915 at {DOOR_IP}",
+        "Doors [1, 2], opening [1, 2]; outputs: COM1 electric_lock, "
+        "COM2 electric_lock; inputs: AI1 door_contact, AI2 disabled, "
+        "AI3 exit_button, AI4 disabled",
+        "Speaker: G.711ulaw; call status: read; settings offered: 0",
+        "Cameras: 101 (main), 102 (off at first)",
+        f"SIP server at {HA_IP}:5060, hearing {DOOR_IP}; phones: 0",
+    ]
+    assert "\n  ".join(summary) in caplog.text
+    # The fetches of the coordinators are not logged, only their failures
+    assert "Finished fetching" not in caplog.text
 
 
 async def test_where_the_sip_server_listens(

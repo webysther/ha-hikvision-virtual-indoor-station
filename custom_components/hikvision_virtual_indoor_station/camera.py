@@ -1,11 +1,11 @@
-"""The camera of the door station: its RTSP stream (with sound) and snapshots."""
+"""The cameras of the door station: one per stream (with sound), and snapshots."""
 
 from __future__ import annotations
 
 import io
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
-from aiohikvision.isapi.wire.faults import BridgeFault
+from aiohikvision import HikvisionError, Stream, StreamId, StreamKind
 from homeassistant.components.camera import Camera, CameraEntityFeature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
@@ -13,9 +13,22 @@ from PIL import Image  # Pillow comes with Home Assistant (its own requirement)
 
 from . import IndoorStationConfigEntry
 from .entity import IndoorStationEntity
-from .station import IndoorStation
+
+if TYPE_CHECKING:
+    from aiohikvision import Streaming
+
+    from .station import IndoorStation
 
 PARALLEL_UPDATES = 0
+
+MAIN: Final = StreamId(1, 1)
+"""The main stream of the door station: the camera it had before it had more."""
+
+# The entities of the other streams, by their place in the channel
+TRANSLATION_KEYS: Final = {
+    StreamKind.SUB: "sub_stream",
+    StreamKind.THIRD: "third_stream",
+}
 
 # How much the shape of a picture may differ from the shape of its stream and be left as
 # it is: sizes are rounded (1920x1080 and 1280x720 are both 16:9, 1366x768 nearly).
@@ -53,36 +66,61 @@ async def async_setup_entry(
     entry: IndoorStationConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Add the camera."""
-    async_add_entities([DoorCamera(entry.runtime_data)])
+    """Add a camera for each stream of the door station."""
+    station = entry.runtime_data
+    if station.streaming is None:
+        return
+    # A door station that does not list its streams still has its main stream
+    streams = station.streams or (Stream(MAIN),)
+    async_add_entities(
+        StreamCamera(station, station.streaming, stream) for stream in streams
+    )
 
 
-class DoorCamera(IndoorStationEntity, Camera):
-    """The picture and sound of the door: what the visitor shows and says."""
+class StreamCamera(IndoorStationEntity, Camera):
+    """A stream of the door: what the visitor shows and says.
 
-    _attr_name = None
+    The main stream is the camera of the device (named as the door station); the others,
+    lighter to play, start disabled: a door station serves few video sessions at once.
+    """
+
     _attr_supported_features = CameraEntityFeature.STREAM
 
-    def __init__(self, station: IndoorStation) -> None:
-        """Create the camera of a station."""
-        IndoorStationEntity.__init__(self, station, "camera")
+    def __init__(
+        self, station: IndoorStation, streaming: Streaming, door_stream: Stream
+    ) -> None:
+        """Create the camera of a stream."""
+        main = door_stream.id == MAIN
+        IndoorStationEntity.__init__(
+            self, station, "camera" if main else f"camera_{door_stream.id.isapi}"
+        )
         Camera.__init__(self)
+        self.streaming = streaming
+        self.door_stream = door_stream
+        if main:
+            self._attr_name = None
+        else:
+            self._attr_translation_key = TRANSLATION_KEYS.get(
+                door_stream.kind, "stream"
+            )
+            self._attr_translation_placeholders = {"stream": door_stream.id.isapi}
+            self._attr_entity_registry_enabled_default = False
 
     async def stream_source(self) -> str:
-        """Return the RTSP address of the main stream (played with WebRTC)."""
-        return self.station.door.rtsp_url()
+        """Return the RTSP address of the stream (played with WebRTC)."""
+        return await self.streaming.rtsp_url(self.door_stream.id)
 
     async def async_camera_image(
         self, width: int | None = None, height: int | None = None
     ) -> bytes | None:
-        """Take a snapshot from the door station, in the shape of its stream."""
+        """Take a snapshot of the stream, in the shape of the stream."""
         try:
-            picture = await self.station.door.snapshot()
-        except BridgeFault:
+            picture = await self.streaming.snapshot(self.door_stream.id)
+        except HikvisionError:
             return None
-        stream = self.station.info.stream
-        if stream is None or not stream.width or not stream.height:
+        video = self.door_stream.video
+        if video is None or not video.width or not video.height:
             return picture
         return await self.hass.async_add_executor_job(
-            shaped_like_stream, picture, stream.width, stream.height
+            shaped_like_stream, picture, video.width, video.height
         )

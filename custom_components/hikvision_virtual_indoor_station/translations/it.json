@@ -121,6 +121,17 @@
                 "name": "Rifiuta"
             }
         },
+        "camera": {
+            "sub_stream": {
+                "name": "Flusso secondario"
+            },
+            "third_stream": {
+                "name": "Terzo flusso"
+            },
+            "stream": {
+                "name": "Flusso {stream}"
+            }
+        },
         "event": {
             "doorbell": {
                 "name": "Campanello",

@@ -22,12 +22,13 @@ from typing import TYPE_CHECKING
 from aiohikvision import (
     DoorStation,
     DoorStationHealth,
+    HikvisionError,
     ImageValue,
     Input,
     Output,
     Setting,
 )
-from aiohikvision.isapi.wire.faults import BadCredentials, BridgeFault, LockedOut
+from aiohikvision.isapi.wire.faults import BadCredentials, LockedOut
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -38,6 +39,11 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
+# Home Assistant logs every fetch of a coordinator at debug ("Finished fetching..."),
+# once a minute here: the debug log of the integration keeps the failures and the
+# recoveries (warning, error, info) without that line
+_POLLING = logging.getLogger(f"{__name__}.polling")
+_POLLING.setLevel(logging.INFO)
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,7 +73,7 @@ def reading() -> Iterator[None]:
             translation_key="auth_failed",
             translation_placeholders={"error": str(err)},
         ) from err
-    except BridgeFault as err:
+    except HikvisionError as err:
         raise UpdateFailed(
             translation_domain=DOMAIN,
             translation_key="cannot_connect",
@@ -84,7 +90,7 @@ class HealthCoordinator(DataUpdateCoordinator[Health]):
         """Check one door station."""
         super().__init__(
             hass,
-            _LOGGER,
+            _POLLING,
             config_entry=entry,
             name=f"{DOMAIN} {entry.title}",
             update_interval=HEALTH_INTERVAL,
@@ -110,7 +116,7 @@ class SettingsCoordinator(DataUpdateCoordinator[Settings]):
         """Follow the settings the door station offers (fixed while it runs)."""
         super().__init__(
             hass,
-            _LOGGER,
+            _POLLING,
             config_entry=entry,
             name=f"{DOMAIN} {entry.title} settings",
             update_interval=SETTINGS_INTERVAL,

@@ -138,7 +138,8 @@ Users' automations and dashboards depend on what the integration exposes.
 
 - Never change unique IDs: entries are the serial of the door station
   (`Identity.stable_id`), as its device; entities are `<serial>_<key>`, with the
-  keys `call`, `doorbell`, `sip_registered`, `camera`, `answer`, `hang_up`,
+  keys `call`, `doorbell`, `sip_registered`, `camera` (the main stream), `camera_<stream id>`
+  (the other streams, `camera_102`), `answer`, `hang_up`,
   `reject`, `open_door_<number>`, `output_<number>`, `input_<number>`,
   `cpu_usage`, `video_sessions`, `visits`, `missed_visits`, `visits_by_hour`,
   `visits_by_day`, and the settings (`SETTING_KEYS` of
@@ -190,6 +191,12 @@ Users' automations and dashboards depend on what the integration exposes.
 
 aiohikvision is pinned exactly in `manifest.json` (`requirements`) and in
 `requirements_test.txt`. Bump both together, and only once the release is on PyPI.
+
+From 0.2 each part of the library is an extra: pin
+`aiohikvision[isapi,rtp,sip]==X` and, next to it, `aiosipua` at the version the
+library pins. Home Assistant checks only the name and version of a requirement,
+not its extras: an aiohikvision installed without `[sip]` (by another
+integration) would leave aiosipua out.
 
 ## Code style
 

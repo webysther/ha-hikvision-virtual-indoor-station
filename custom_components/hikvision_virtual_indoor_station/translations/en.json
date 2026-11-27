@@ -121,6 +121,17 @@
                 "name": "Reject"
             }
         },
+        "camera": {
+            "sub_stream": {
+                "name": "Sub stream"
+            },
+            "third_stream": {
+                "name": "Third stream"
+            },
+            "stream": {
+                "name": "Stream {stream}"
+            }
+        },
         "event": {
             "doorbell": {
                 "name": "Doorbell",

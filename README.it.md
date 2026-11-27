@@ -311,11 +311,19 @@ un citofono vengono dimenticate con lui.
 - **Il video rallenta o si blocca.** Guarda **Video sessions** e **CPU usage**:
   ogni client che trasmette il citofono (Home Assistant, un registratore, l'app
   Hik-Connect) lo carica, e con la CPU vicina al 90% il video rallenta.
-  Trasmettilo da meno posti.
+  Trasmettilo da meno posti, o riproduci la sua telecamera **Flusso secondario**
+  (attivala prima): un'immagine più piccola, più leggera per il citofono e per il
+  telefono.
 
-Attiva i log di debug (**Impostazioni → Dispositivi e servizi → Hikvision Virtual
-Indoor Station → Abilita la registrazione di debug**) e scarica la diagnostica
-prima di aprire una issue: non contiene indirizzi, nomi né l'account.
+Prima di aprire una issue, attiva i log di debug (**Impostazioni → Dispositivi e
+servizi → Hikvision Virtual Indoor Station → Abilita la registrazione di debug**),
+ricarica l'integrazione, ripeti ciò che non va e disattivali: Home Assistant scarica
+il log. È breve e dice una volta ciò che serve a una correzione: come è stato
+riconosciuto il citofono (modello, firmware, cosa sa fare, i comportamenti impostati
+per il suo modello), cosa è stato configurato (porte, ingressi, uscite,
+altoparlante, telecamere, SIP), i suoi flussi e ogni richiesta che fallisce. Allegalo
+con la diagnostica (**Scarica diagnostica** nella pagina del dispositivo): contiene il
+rapporto del citofono, letto senza cambiare nulla e senza indirizzi, nomi né account.
 
 ## Dispositivi supportati
 
@@ -328,7 +336,8 @@ funzionare; segnala il tuo.
 
 | Entità | Cosa fa |
 | --- | --- |
-| Telecamera | L'immagine e il suono della porta (RTSP), e le foto |
+| Telecamera | L'immagine e il suono della porta (RTSP), e le foto: il flusso principale |
+| Flusso secondario (telecamera, disattivata di default) | Lo stesso, più leggero da riprodurre (720p su un DS-KD8003); una telecamera per ogni altro flusso del citofono |
 | Doorbell (evento) | `ring`, `answered`, `rejected`, `missed`, `ended`, con l'id della chiamata |
 | Call (sensore) | `idle`, `ringing`, `answered` |
 | SIP registration (diagnostica) | Acceso finché il citofono può chiamare Home Assistant |

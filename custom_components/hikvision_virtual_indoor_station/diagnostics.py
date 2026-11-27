@@ -2,7 +2,9 @@
 
 Masked: no addresses, names, account, nor the SIP Call-ID (it can carry the door's
 address; the call's token stands for it). The phones say what they may do, not who
-they are.
+they are. The report of the device (aiohikvision's, read with GET only and anonymized)
+holds what it answers and what the library is missing: attached to an issue, it is what
+a fix needs.
 """
 
 from __future__ import annotations
@@ -11,6 +13,7 @@ from dataclasses import asdict
 import time
 from typing import Any
 
+from aiohikvision import HikvisionError
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
@@ -28,7 +31,7 @@ async def async_get_config_entry_diagnostics(
 ) -> dict[str, Any]:
     """Return the diagnostics of an entry, without addresses, names or the account."""
     station = entry.runtime_data
-    # Both are created before the entry is loaded
+    # They are created before the entry is loaded
     assert station.health is not None
     assert station.settings is not None
     info = station.info
@@ -36,20 +39,32 @@ async def async_get_config_entry_diagnostics(
     registration = station.registration
     call = station.call
     talkback = call.talkback if call is not None else None
+    assert station.device is not None
+    try:
+        report = (await station.device.report()).as_dict()
+    except HikvisionError as err:
+        report = {"error": type(err).__name__}
     return {
         "version": __version__,
         "entry": async_redact_data(dict(entry.data), TO_REDACT),
         "device": {
             "model": identity.model,
-            "firmware": identity.firmware,
-            "firmware_build": identity.firmware_build,
+            "firmware": str(identity.firmware),
             "hardware": identity.hardware,
             "device_type": identity.device_type,
         },
         "doors": list(info.doors),
         "call_status": info.call_status,
         "speaker": info.talk.codec if info.talk is not None else None,
-        "rtsp_port": info.rtsp_port,
+        "rtsp_port": await station.streaming.rtsp_port() if station.streaming else None,
+        "streams": [
+            {
+                "id": stream.id.isapi,
+                "video": asdict(stream.video) if stream.video else None,
+                "audio": stream.audio,
+            }
+            for stream in station.streams
+        ],
         "sip": {
             "registered": registration is not None,
             "user_agent": registration.user_agent if registration else None,
@@ -82,4 +97,5 @@ async def async_get_config_entry_diagnostics(
                 outcome.value: station.visits.total(outcome) for outcome in Outcome
             },
         },
+        "report": report,
     }

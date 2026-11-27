@@ -9,10 +9,11 @@ IndoorStation (station.py).
 from __future__ import annotations
 
 import asyncio
+import logging
 import socket
 
-from aiohikvision import DoorStation, NotADoorStation
-from aiohikvision.isapi.wire.faults import BadCredentials, BridgeFault, LockedOut
+from aiohikvision import Device, DoorStation, HikvisionError, NotADoorStation
+from aiohikvision.isapi.wire.faults import BadCredentials, LockedOut
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_HOST,
@@ -38,6 +39,8 @@ from .dashboard import async_offer_the_frontend
 from .phones import Phones
 from .station import IndoorStation
 from .visits import VisitLog
+
+_LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = [
     Platform.BINARY_SENSOR,
@@ -77,6 +80,9 @@ async def async_setup_entry(
     )
     try:
         info = await door.read_info()
+        # On the door station's own link: one link, one count of failed logins
+        device = await Device.from_link(door.link)
+        streams = await device.streaming.streams() if device.streaming else ()
         load = await door.read_health()
         # What it offers is read once (its capabilities); their values are followed
         settings = await door.read_settings()
@@ -91,7 +97,7 @@ async def async_setup_entry(
         raise ConfigEntryError(
             translation_domain=DOMAIN, translation_key="not_door_station"
         ) from err
-    except BridgeFault as err:
+    except HikvisionError as err:
         raise ConfigEntryNotReady(
             translation_domain=DOMAIN,
             translation_key="cannot_connect",
@@ -107,6 +113,9 @@ async def async_setup_entry(
         )
 
     station = IndoorStation(hass, entry, door, info, await _address(host))
+    station.device = device
+    station.streaming = device.streaming
+    station.streams = streams
     await station.visits.async_load()
     station.health = HealthCoordinator(hass, entry, door)
     # The door station just answered: no second request before the first interval
@@ -130,6 +139,7 @@ async def async_setup_entry(
     # The phones ring with the door station
     entry.async_on_unload(await Phones(hass, station).async_start())
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    _LOGGER.debug("%s", "\n  ".join(station.summary()))
     return True
 
 

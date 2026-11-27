@@ -121,6 +121,17 @@
                 "name": "Recusar"
             }
         },
+        "camera": {
+            "sub_stream": {
+                "name": "Fluxo secundário"
+            },
+            "third_stream": {
+                "name": "Terceiro fluxo"
+            },
+            "stream": {
+                "name": "Fluxo {stream}"
+            }
+        },
         "event": {
             "doorbell": {
                 "name": "Campainha",

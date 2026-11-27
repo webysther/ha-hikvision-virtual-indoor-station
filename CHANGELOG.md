@@ -116,6 +116,20 @@ station.
   day/night sensitivity, WDR level, backlight compensation and power line
   frequency are there too, disabled by default). They are read every 5 minutes,
   and a change is read back from the door station.
+- A lean debug log, rich in what a fix needs: one record says how the door station
+  was recognised (model, firmware, what it can do, the behaviours set for its model)
+  and one what was set up (doors, inputs, outputs, speaker, cameras, SIP, phones);
+  the streams are logged when they change, and each failing request once, until it
+  answers again. The minute-by-minute polling no longer fills it: only its failures
+  and recoveries are logged.
+- The diagnostics hold the door station's report (aiohikvision's): its documents read
+  with GET only and anonymized, what it can do, and what the library does not cover
+  or recognise yet.
+- A camera for each stream of the door station: the main stream is the camera it had,
+  and the **Sub stream** (720p on a DS-KD8003, lighter for the door station and the
+  phones) is a camera of its own, disabled by default: a door station serves few video
+  sessions at once. The diagnostics list the streams (codec, size, frame rate, key
+  frames, sound).
 - An **Input** diagnostic sensor for each changeable input (door contact, exit
   button, disabled), and **CPU usage** and **Video sessions**: how loaded the
   door station is, as every client streaming its video loads it.
@@ -132,9 +146,10 @@ station.
 - The card goes live as soon as the door rings, also in a panel just opened from a
   notification: it loads the camera player as soon as it shows, and no longer
   keeps the picture when the frontend takes more than 5 seconds to load it.
-- Requires aiohikvision 0.1.7: door stations reached over HTTPS keep the TLS
-  settings of Home Assistant's session; what the outputs and inputs are wired
-  for, the settings and the load are read; the door's sound comes with the call.
+- Requires aiohikvision 0.2.0 (its isapi, rtp and sip parts): door stations
+  reached over HTTPS keep the TLS settings of Home Assistant's session; what the
+  outputs and inputs are wired for, the settings and the load are read; the
+  door's sound comes with the call; the streams are listed.
 - The door station is asked what its outputs drive and how loaded it is once a
   minute, in place of who it is.
 - The integration is in the **Doorbells and intercoms** category.

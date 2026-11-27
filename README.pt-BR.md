@@ -305,11 +305,18 @@ porteiro. As visitas de um porteiro são esquecidas junto com ele.
 - **O vídeo atrasa ou trava.** Veja **Video sessions** e **CPU usage**: cada
   cliente que transmite o porteiro (o Home Assistant, um gravador, o app
   Hik-Connect) pesa nele, e com a CPU perto de 90% o vídeo fica lento. Transmita
-  de menos lugares.
+  de menos lugares, ou toque a câmera **Fluxo secundário** (ative-a antes): uma
+  imagem menor, mais leve para o porteiro e para o celular.
 
-Ative os logs de depuração (**Configurações → Dispositivos e serviços →
-Hikvision Virtual Indoor Station → Habilitar registro de depuração**) e baixe os
-diagnósticos antes de abrir uma issue: eles omitem endereços, nomes e a conta.
+Antes de abrir uma issue, ative os logs de depuração (**Configurações →
+Dispositivos e serviços → Hikvision Virtual Indoor Station → Habilitar registro de
+depuração**), recarregue a integração, repita o que falha e desative-os: o Home
+Assistant baixa o log. Ele é curto e diz uma vez o que uma correção precisa: como o
+porteiro foi reconhecido (modelo, firmware, o que ele sabe fazer, os comportamentos
+definidos para o modelo dele), o que foi montado (portas, entradas, saídas,
+alto-falante, câmeras, SIP), os streams e cada requisição que falha. Anexe-o com os
+diagnósticos (**Baixar diagnóstico** na página do dispositivo): eles trazem o
+relatório do porteiro, lido sem mudar nada e sem endereços, nomes nem a conta.
 
 ## Dispositivos suportados
 
@@ -322,7 +329,8 @@ conte como foi com o seu.
 
 | Entidade | O que faz |
 | --- | --- |
-| Câmera | A imagem e o som da porta (RTSP), e as fotos |
+| Câmera | A imagem e o som da porta (RTSP), e as fotos: o stream principal |
+| Fluxo secundário (câmera, desativada por padrão) | O mesmo, mais leve de tocar (720p num DS-KD8003); uma câmera para cada outro fluxo do porteiro |
 | Doorbell (evento) | `ring`, `answered`, `rejected`, `missed`, `ended`, com o id da chamada |
 | Call (sensor) | `idle`, `ringing`, `answered` |
 | SIP registration (diagnóstico) | Ligado enquanto o porteiro consegue chamar o Home Assistant |

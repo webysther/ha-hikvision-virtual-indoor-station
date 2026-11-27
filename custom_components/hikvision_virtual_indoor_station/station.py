@@ -21,10 +21,10 @@ from aiohikvision import (
     DoorCall,
     DoorStation,
     DoorStationInfo,
+    HikvisionError,
     ImageValue,
     Setting,
 )
-from aiohikvision.isapi.wire.faults import BridgeFault
 from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
@@ -43,7 +43,7 @@ from .const import (
 from .visits import VisitLog
 
 if TYPE_CHECKING:
-    from aiohikvision import Registration
+    from aiohikvision import Device, Registration, Stream, Streaming
     from homeassistant.config_entries import ConfigEntry
 
     from .coordinator import HealthCoordinator, SettingsCoordinator
@@ -95,6 +95,10 @@ class IndoorStation:
         self.call: DoorCall | None = None
         self.registration: Registration | None = None
         self.health: HealthCoordinator | None = None
+        # The device over ISAPI (its report), and its streams, each a camera
+        self.device: Device | None = None
+        self.streaming: Streaming | None = None
+        self.streams: tuple[Stream, ...] = ()
         self.settings: SettingsCoordinator | None = None
         self.visits = VisitLog(hass, entry.entry_id)
         # When the door's last keepalive arrived, and since when it is unheard
@@ -124,9 +128,7 @@ class IndoorStation:
             model=identity.model,
             name=identity.name,
             serial_number=identity.serial or None,
-            sw_version=" ".join(
-                part for part in (identity.firmware, identity.firmware_build) if part
-            ),
+            sw_version=str(identity.firmware),
             hw_version=identity.hardware,
             # Its web page over HTTPS, on the standard port whatever port ISAPI is
             # reached on: the account is typed into it
@@ -172,6 +174,39 @@ class IndoorStation:
         ):
             return None
         return call.talkback.codec
+
+    def summary(self) -> list[str]:
+        """Return what was set up for the door station, in a few lines for a debug log.
+
+        With the library's record of how it recognised the device, it is what a fix
+        needs: the doors and what opens them, the inputs and outputs, the speaker, the
+        cameras, the settings offered, the SIP server and the phones.
+        """
+        info = self.info
+        outputs = ", ".join(
+            f"{item.name or item.number} {item.use}" for item in info.outputs
+        )
+        inputs = ", ".join(
+            f"{item.name or item.number} {item.use}" for item in info.inputs
+        )
+        cameras = ", ".join(
+            f"{stream.id.isapi} ({'main' if stream.id.index == 1 else 'off at first'})"
+            for stream in self.streams
+        )
+        speaker = info.talk.codec if info.talk else "none"
+        status = "read" if info.call_status else "not offered"
+        settings = len(self.settings.settings) if self.settings else 0
+        sip = "{}:{}".format(*self.sip.contact) if self.sip else "none"
+        phones = len(self.entry.subentries)
+        identity = info.identity
+        return [
+            f"Set up {identity.model} {identity.firmware} at {self.door_ip}",
+            f"Doors {list(info.doors)}, opening {list(info.locks)}; "
+            f"outputs: {outputs or 'not said'}; inputs: {inputs or 'not said'}",
+            f"Speaker: {speaker}; call status: {status}; settings offered: {settings}",
+            f"Cameras: {cameras or 'none listed'}",
+            f"SIP server at {sip}, hearing {self.door_ip}; phones: {phones}",
+        ]
 
     def snapshot(self) -> dict[str, object]:
         """Return the state the cards are given."""
@@ -367,7 +402,7 @@ class IndoorStation:
             )
         try:
             await self.door.open_door(door)
-        except BridgeFault as err:
+        except HikvisionError as err:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="open_door_failed",
@@ -381,7 +416,7 @@ class IndoorStation:
         field = current.field if current is not None else setting.spec.fields[0]
         try:
             await self.door.write_setting(setting, field, value)
-        except BridgeFault as err:
+        except HikvisionError as err:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="setting_failed",
