@@ -3,10 +3,15 @@
 Talking goes where the door station plays it: during an answered call, with the call
 (SIP, in 40 ms packets); otherwise through its speaker (ISAPI two-way audio). The
 browser sends 20 ms G.711 frames either way, in the variant the "started" event names.
+
+Listening to an answered call gets the door's sound as it sends it over SIP: 40 ms of
+G.711 an event, which browsers whose camera player has no G.711 (Home Assistant's HLS)
+cannot play from the camera.
 """
 
 from __future__ import annotations
 
+import base64
 from collections.abc import Callable
 from typing import Any
 
@@ -29,6 +34,7 @@ def async_register_commands(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_call)
     websocket_api.async_register_command(hass, ws_open_door)
     websocket_api.async_register_command(hass, ws_talk)
+    websocket_api.async_register_command(hass, ws_listen)
 
 
 def _station(
@@ -73,6 +79,44 @@ def ws_subscribe(
     connection.subscriptions[msg["id"]] = station.async_add_listener(send)
     connection.send_result(msg["id"])
     send()
+
+
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): f"{DOMAIN}/listen",
+        probatio.Required("entry_id"): str,
+        probatio.Required("call_id"): str,
+    }
+)
+@callback
+def ws_listen(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Send the door's sound of a call as it comes, once the call is answered.
+
+    Each event is 40 ms of G.711 (``audio``, base64) in the variant of the call
+    (``codec``). Nothing comes for another call, nor once the call is over.
+    """
+    station = _station(hass, connection, msg)
+    if station is None:
+        return
+
+    @callback
+    def heard(call: DoorCall, payload: bytes) -> None:
+        if call.id != msg["call_id"] or call.talkback is None:
+            return
+        connection.send_message(
+            websocket_api.event_message(
+                msg["id"],
+                {
+                    "audio": base64.b64encode(payload).decode(),
+                    "codec": call.talkback.codec,
+                },
+            )
+        )
+
+    connection.subscriptions[msg["id"]] = station.async_add_audio_listener(heard)
+    connection.send_result(msg["id"])
 
 
 @websocket_api.websocket_command(

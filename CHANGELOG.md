@@ -121,9 +121,16 @@ station.
 
 ### Changed since 2026.11.0b1
 
-- Requires aiohikvision 0.1.6: door stations reached over HTTPS keep the TLS
+- The visitor's voice comes from the call itself once answered, in every browser:
+  an iPad, whose camera player (Home Assistant's HLS) has no G.711 sound, now
+  hears them. The camera's sound is muted during the call, so that the visitor is
+  not heard twice, and plays again while monitoring.
+- The card goes live as soon as the door rings, also in a panel just opened from a
+  notification: it loads the camera player as soon as it shows, and no longer
+  keeps the picture when the frontend takes more than 5 seconds to load it.
+- Requires aiohikvision 0.1.7: door stations reached over HTTPS keep the TLS
   settings of Home Assistant's session; what the outputs and inputs are wired
-  for, the settings and the load are read.
+  for, the settings and the load are read; the door's sound comes with the call.
 - The door station is asked what its outputs drive and how loaded it is once a
   minute, in place of who it is.
 - The integration is in the **Doorbells and intercoms** category.

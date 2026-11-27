@@ -107,6 +107,7 @@ class FakeCallServer:
         self.options = kwargs
         self.advertise: str = kwargs["advertise"]
         self._on_change = on_change
+        self._on_audio = kwargs.get("on_audio")
         self.calls: dict[str, DoorCall] = {}
         self.rejected: list[tuple[str, int]] = []
         self.started = False
@@ -171,6 +172,11 @@ class FakeCallServer:
         call = self._live(call_id, CallState.ANSWERED)
         self.end(call, EndReason.HUNG_UP)
         return call
+
+    def sound(self, call: DoorCall, payload: bytes) -> None:
+        """Have the door send 40 ms of its sound in a call."""
+        assert self._on_audio is not None  # the integration listens to the door
+        self._on_audio(call, payload)
 
     def end(self, call: DoorCall, reason: EndReason) -> None:
         """End the call (the door hung up, the visitor left...)."""

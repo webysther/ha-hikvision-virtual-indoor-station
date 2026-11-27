@@ -35,17 +35,23 @@ holds the Home Assistant side only. It can be installed next to Hikvision Bridge
 
 ## How a call works
 
-The design is hybrid (aiohikvision's `docs/ADR-0001-hybrid-call.md`):
+The design is hybrid (aiohikvision's `docs/ADR-0001-hybrid-call.md` and
+`docs/ADR-0002-door-sound-over-sip.md`):
 
 - **SIP carries the call.** The door's VoIP line registers with Home Assistant
   and calls it; the call rings (180), is answered (200), refused (486) or hung
   up (BYE) on command, and every command names its call by its id.
 - **SIP carries the microphone during a call**, in 40 ms G.711 packets
-  (`a=sendonly`, `m=video 0`): the door slows its own audio when it receives
+  (`a=sendrecv`, `m=video 0`): the door slows its own audio when it receives
   20 ms ones.
-- **The door's picture and sound come over RTSP** (the camera entity, played
-  with WebRTC). Outside a call, the microphone goes through the door's speaker
-  (ISAPI two-way audio).
+- **SIP brings the door's sound back during an answered call**: the
+  `CallServer`'s `on_audio` hands on its 40 ms G.711 payloads, the `listen`
+  command sends them to the cards, and the card plays them with Web Audio
+  (frontend/door-sound.js), the camera muted meanwhile. Home Assistant's HLS,
+  which an iPad falls back to, keeps no G.711 sound.
+- **The door's picture comes over RTSP** (the camera entity, played with
+  WebRTC), and its sound while monitoring. Outside a call, the microphone goes
+  through the door's speaker (ISAPI two-way audio).
 
 ## Layout
 
@@ -79,7 +85,8 @@ custom_components/hikvision_virtual_indoor_station/
                    call; outputs, inputs, CPU, video sessions), binary_sensor.py (SIP registration), button.py (open
                    each door; answer, hang up, reject), camera.py (RTSP)
   websocket.py     the commands of the cards: subscribe, call, open_door, talk
-                   (binary frames routed to the call or to the speaker)
+                   (binary frames routed to the call or to the speaker), listen
+                   (the door's sound of an answered call, base64 G.711)
   phones.py        the phones ring with the door: a notification through the
                    app's notify action, its buttons (answer in the panel, open
                    the door, reject) valid while their call lasts, taken back
@@ -94,7 +101,9 @@ custom_components/hikvision_virtual_indoor_station/
                    card of the theme, laid out like an indoor station; only
                    its keys have colors), hikvision-indoor-station-dashboard.js (the
                    dashboard strategy, a view per door station, and the
-                   helpers the card shares)
+                   helpers the card shares), door-sound.js (the door's sound
+                   of a call: G.711 decoded, played with Web Audio), talk.js,
+                   talk-audio.js and talk-worklet.js (the microphone)
   strings.json, translations/ (en, it, pt-BR), icons.json, quality_scale.yaml,
   manifest.json, version.py, brand/ (original art, not Hikvision's)
 tests/             pytest-homeassistant-custom-component; aiohikvision mocked

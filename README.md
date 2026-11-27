@@ -31,8 +31,9 @@ hang up or refuse the call, and open the door.
   add-on, SIP server, MQTT broker or cloud account to set up next to it.
 - **Hybrid, the best of each protocol.** SIP carries the call, as the door
   station expects from an indoor station; RTP carries your voice to the door, in
-  the packets it plays best; RTSP brings its picture and sound; ISAPI opens the
-  doors and talks through its speaker outside a call.
+  the packets it plays best, and brings the visitor's voice back once answered;
+  RTSP brings its picture, and its sound while you monitor; ISAPI opens the doors
+  and talks through its speaker outside a call.
 - **Platinum from day one.** It follows every rule of the top tier of the
   [integration quality scale](https://www.home-assistant.io/docs/quality_scale/):
   async, typed, fully tested, translated, with repairs, reauthentication and
@@ -51,8 +52,9 @@ hang up or refuse the call, and open the door.
   command names its call, so a late tap never touches the next visitor.
 - **Talk to the visitor.** During a call your microphone goes to the door with the
   call; outside a call, through the door's speaker.
-- **See and hear the visitor**: the camera of the door station, with its sound,
-  played with WebRTC.
+- **See and hear the visitor**: the camera of the door station, played with
+  WebRTC, and the visitor's voice from the call itself once answered, in every
+  browser (an iPad too).
 - **Open the doors** wired to the door station, one button each.
 - **Tune the door station** from Home Assistant: the image of its camera, its
   volumes, how long each door stays open and its voice prompt, within the ranges
@@ -190,7 +192,10 @@ show_ringer: true
 Browsers hold the sound of a page until it is tapped: the card asks for a tap
 when the door rings before that. Phones also play the door's sound only from a
 tap: **Answer** and **Monitor** turn it on, and when a call is answered from a
-notification the card asks for a tap to hear the door. Talking needs Home Assistant opened over HTTPS.
+notification the card asks for a tap to hear the door. During a call the
+visitor's voice comes from the call, not from the camera: a browser whose camera
+player has no G.711 sound (an iPad, which plays the camera with HLS) hears them
+too. Talking needs Home Assistant opened over HTTPS.
 
 ## Mobile apps
 

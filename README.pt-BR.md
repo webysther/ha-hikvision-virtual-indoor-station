@@ -32,7 +32,8 @@ atende, fala, desliga ou recusa a chamada, e abre a porta.
   servidor SIP, broker MQTT ou conta na nuvem para configurar ao lado.
 - **Híbrida, o melhor de cada protocolo.** O SIP leva a chamada, como o porteiro
   espera de um monitor interno; o RTP leva a sua voz até a porta, nos pacotes que
-  ela toca melhor; o RTSP traz a imagem e o som; o ISAPI abre as portas e fala
+  ela toca melhor, e traz de volta a voz do visitante depois de atendida; o RTSP
+  traz a imagem, e o som enquanto você monitora; o ISAPI abre as portas e fala
   pelo alto-falante fora de uma chamada.
 - **Platinum desde o primeiro dia.** Segue todas as regras do nível mais alto da
   [escala de qualidade de integrações](https://www.home-assistant.io/docs/quality_scale/):
@@ -53,7 +54,9 @@ atende, fala, desliga ou recusa a chamada, e abre a porta.
   próximo visitante.
 - **Fale com o visitante.** Durante uma chamada, o seu microfone vai para a porta
   junto com a chamada; fora dela, pelo alto-falante do porteiro.
-- **Veja e ouça o visitante**: a câmera do porteiro, com o som, tocada por WebRTC.
+- **Veja e ouça o visitante**: a câmera do porteiro, tocada por WebRTC, e a voz
+  do visitante pela própria chamada depois de atendida, em qualquer navegador
+  (inclusive no iPad).
 - **Abra as portas** ligadas ao porteiro, um botão para cada uma.
 - **Ajuste o porteiro** pelo Home Assistant: a imagem da câmera, os volumes, o
   tempo que cada porta fica aberta e o aviso de voz, dentro das faixas que ele
@@ -192,8 +195,10 @@ show_ringer: true
 Os navegadores seguram o som de uma página até alguém tocar nela: o card pede um
 toque quando a porta toca antes disso. Os celulares também só tocam o som da porta
 a partir de um toque: **Atender** e **Monitorar** ligam o som, e quando a chamada
-é atendida pela notificação o card pede um toque para ouvir a porta. Para falar,
-o Home Assistant precisa estar aberto por HTTPS.
+é atendida pela notificação o card pede um toque para ouvir a porta. Durante uma
+chamada, a voz do visitante vem da chamada, não da câmera: um navegador cujo
+player da câmera não tem o som G.711 (o iPad, que toca a câmera por HLS) também
+ouve. Para falar, o Home Assistant precisa estar aberto por HTTPS.
 
 ## Aplicativos móveis
 

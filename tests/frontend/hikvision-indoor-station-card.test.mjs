@@ -125,11 +125,12 @@ describe("configuration", () => {
 
 describe("the screen", () => {
   it("plays live only while it rings, a call is answered or someone monitors", () => {
-    assert.deepEqual(screenOf("idle", false), { live: false, audible: false });
-    // The visitor is seen while it rings, and heard once answered
-    assert.deepEqual(screenOf("ringing", false), { live: true, audible: false });
-    assert.deepEqual(screenOf("answered", false), { live: true, audible: true });
-    assert.deepEqual(screenOf("idle", true), { live: true, audible: true });
+    assert.deepEqual(screenOf("idle", false), { live: false, audible: false, source: null });
+    // The visitor is seen while it rings, and heard once answered: from the call itself
+    assert.deepEqual(screenOf("ringing", false), { live: true, audible: false, source: null });
+    assert.deepEqual(screenOf("answered", false), { live: true, audible: true, source: "call" });
+    // Monitored, the door is heard from the camera
+    assert.deepEqual(screenOf("idle", true), { live: true, audible: true, source: "camera" });
   });
 });
 
@@ -180,8 +181,8 @@ describe("talking", () => {
   });
 
   it("mutes the door while you talk: it hears and speaks by turns", () => {
-    assert.deepEqual(screenOf("answered", false, true), { live: true, audible: false });
-    assert.deepEqual(screenOf("idle", true, true), { live: true, audible: false });
+    assert.equal(screenOf("answered", false, true).audible, false);
+    assert.equal(screenOf("idle", true, true).audible, false);
   });
 
   it("has a text in every language for every way a talk can fail or end", () => {

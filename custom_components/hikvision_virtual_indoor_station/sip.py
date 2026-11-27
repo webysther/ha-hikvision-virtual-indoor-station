@@ -61,6 +61,7 @@ class SipServer:
             advertise=advertise,
             rtp_host=host,
             on_change=self._changed,
+            on_audio=self._door_audio,
             registrar=self.registrar,
         )
         self._stations: dict[str, IndoorStation] = {}
@@ -139,6 +140,11 @@ class SipServer:
     def _changed(self, call: DoorCall) -> None:
         if station := self._stations.get(call.door):
             station.call_changed(call)
+
+    @callback
+    def _door_audio(self, call: DoorCall, payload: bytes) -> None:
+        if station := self._stations.get(call.door):
+            station.door_audio(call, payload)
 
     @callback
     def _registered(self, registration: Registration, registered: bool) -> None:

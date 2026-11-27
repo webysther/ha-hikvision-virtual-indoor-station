@@ -29,6 +29,7 @@ import {
   translated,
   withTexts,
 } from "./hikvision-indoor-station-dashboard.js";
+import { DoorSpeaker, bytesOf } from "./door-sound.js";
 import { Microphone } from "./talk.js";
 
 export { CARD };
@@ -73,9 +74,6 @@ export { CARD };
 
 /** The action of the websocket command `call` for each button of the call. */
 export const CALL_ACTIONS = { answer: "answer", reject: "reject", hang_up: "hangup" };
-
-/** How long the card waits for the frontend to define its camera stream, in ms. */
-export const STREAM_WAIT = 5000;
 
 /** Where the browser remembers that its ringer is muted (one choice per browser). */
 export const RING_MUTED_KEY = `${PLATFORM}.ring_muted`;
@@ -242,17 +240,22 @@ export function keyName(hass, key) {
 }
 
 /**
- * Return what the screen shows: the live camera or its picture, and whether the door's
- * sound plays. It is muted while you talk: the door station hears and speaks by turns.
+ * Return what the screen shows: the live camera or its picture, whether the door's sound
+ * plays, and where it comes from: the call once answered (over SIP, which every browser
+ * plays), the camera while monitored. It is muted while you talk: the door station hears
+ * and speaks by turns.
  *
  * @param {CallState} state
  * @param {boolean} monitoring
  * @param {boolean} [talking]
+ * @returns {{ live: boolean, audible: boolean, source: "call" | "camera" | null }}
  */
 export function screenOf(state, monitoring, talking = false) {
+  const source = state === "answered" ? "call" : monitoring ? "camera" : null;
   return {
     live: state !== "idle" || monitoring,
-    audible: (state === "answered" || monitoring) && !talking,
+    audible: source !== null && !talking,
+    source,
   };
 }
 
@@ -731,23 +734,25 @@ if (typeof customElements !== "undefined") {
 
   /**
    * Have the frontend define its camera stream, which it loads with its picture cards.
+   * Resolves once it is defined, however long the frontend takes (a phone opening the
+   * panel from a notification may load it for seconds).
    *
    * @param {string} camera
    */
   async function loadCameraStream(camera) {
-    if (customElements.get("ha-camera-stream")) return true;
-    try {
-      const helpers = await /** @type {any} */ (window).loadCardHelpers();
-      await helpers.createCardElement({
-        type: "picture-entity",
-        entity: camera,
-        camera_view: "live",
-      });
-    } catch (_err) {
-      /* the helpers are missing: the timeout below decides */
+    if (!customElements.get("ha-camera-stream")) {
+      try {
+        const helpers = await /** @type {any} */ (window).loadCardHelpers();
+        await helpers.createCardElement({
+          type: "picture-entity",
+          entity: camera,
+          camera_view: "live",
+        });
+      } catch (_err) {
+        /* the helpers are missing: the stream shows once something else defines it */
+      }
     }
-    const timeout = new Promise((resolve) => setTimeout(() => resolve(false), STREAM_WAIT));
-    return Promise.race([customElements.whenDefined("ha-camera-stream").then(() => true), timeout]);
+    await customElements.whenDefined("ha-camera-stream");
   }
 
   /**
@@ -834,7 +839,11 @@ if (typeof customElements !== "undefined") {
     #parts = null;
     /** @type {any} The live camera, kept while it plays: rebuilding it restarts the stream. */
     #stream = null;
-    /** @type {boolean | null} Whether the frontend defined its camera stream, once known. */
+    /**
+     * @type {boolean | null} Whether the frontend defined its camera stream; null until
+     * the card asks for it, as soon as it shows a camera, so that it is ready to play
+     * when the door rings.
+     */
     #streamDefined = null;
     #ringMuted = ringMutedHere();
     #ringer = new Ringer();
@@ -846,6 +855,10 @@ if (typeof customElements !== "undefined") {
     #clock = null;
     /** Whether the browser keeps the door silent until a tap (see `soundHeld`). */
     #soundHeld = false;
+    /** The door's sound of an answered call, from the call itself. */
+    #speaker = new DoorSpeaker();
+    /** @type {{ callId: string, unsubscribe: (() => void) | null } | null} What it hears. */
+    #listening = null;
     /** @type {ReturnType<typeof setTimeout> | null} The next look at the sound. */
     #soundCheck = null;
 
@@ -857,32 +870,78 @@ if (typeof customElements !== "undefined") {
       const unlock = () => {
         this.#ringer.resume();
         this.#microphone?.resume();
-        if (this.#audible()) this.#hearDoor();
+        const screen = this.#screen();
+        if (screen.audible && screen.source) this.#hearDoor(screen.source);
       };
       this.addEventListener("pointerdown", unlock);
       this.addEventListener("click", unlock);
     }
 
-    /** Whether the door should be heard now: a call answered, or the door monitored. */
-    #audible() {
+    /** What the screen shows now (see `screenOf`). */
+    #screen() {
       const state = callStateOf(this.#snapshot);
-      return screenOf(state, this.#monitoring, this.#microphone !== null).audible;
+      return screenOf(state, this.#monitoring, this.#microphone !== null);
     }
 
     /**
-     * Turn the door's sound on in the video itself. Called within a tap: only there do
-     * phones let a video play with sound.
+     * Turn the door's sound on: the player of the call's sound, or the camera's video.
+     * Called within a tap: only there do phones let sound play.
+     *
+     * @param {"call" | "camera"} source
      */
-    #hearDoor() {
-      const video = videoIn(this.#stream);
-      if (this.#stream) this.#stream.muted = false;
-      if (!video) return;
-      video.muted = false;
-      video.play().catch(() => {});
-      if (this.#soundHeld && !soundHeld(video, true)) {
+    #hearDoor(source) {
+      if (source === "call") {
+        this.#speaker.unlock();
+      } else {
+        const video = videoIn(this.#stream);
+        if (this.#stream) this.#stream.muted = false;
+        if (video) {
+          video.muted = false;
+          video.play().catch(() => {});
+        }
+      }
+      if (this.#soundHeld && !this.#heldNow()) {
         this.#soundHeld = false;
         this.#render();
       }
+    }
+
+    /** Whether the browser keeps the door silent now, though it should be heard. */
+    #heldNow() {
+      const screen = this.#screen();
+      if (!screen.audible) return false;
+      return screen.source === "call" ? this.#speaker.held : soundHeld(videoIn(this.#stream), true);
+    }
+
+    /**
+     * Hear the door's sound of the answered call, or stop hearing it (null).
+     *
+     * @param {string | null} callId
+     */
+    #listen(callId) {
+      if ((this.#listening?.callId ?? null) === callId) return;
+      this.#listening?.unsubscribe?.();
+      this.#listening = null;
+      this.#speaker.reset();
+      const entry = this.#station?.entry_id;
+      const connection = this.#hass?.connection;
+      if (!callId || !entry || !connection) return;
+      /** @type {{ callId: string, unsubscribe: (() => void) | null }} */
+      const listening = { callId, unsubscribe: null };
+      this.#listening = listening;
+      connection
+        .subscribeMessage(
+          (/** @type {{ audio: string, codec: string }} */ event) =>
+            this.#speaker.play(bytesOf(event.audio), event.codec),
+          { type: `${PLATFORM}/listen`, entry_id: entry, call_id: callId },
+        )
+        .then((/** @type {() => void} */ unsubscribe) => {
+          if (this.#listening === listening) listening.unsubscribe = unsubscribe;
+          else unsubscribe();
+        })
+        .catch(() => {
+          /* the call ended meanwhile, or the integration has no sound to give */
+        });
     }
 
     /**
@@ -893,7 +952,7 @@ if (typeof customElements !== "undefined") {
       if (this.#soundCheck) return;
       this.#soundCheck = setTimeout(() => {
         this.#soundCheck = null;
-        const held = soundHeld(videoIn(this.#stream), this.#audible());
+        const held = this.#heldNow();
         if (held !== this.#soundHeld) {
           this.#soundHeld = held;
           this.#render();
@@ -939,6 +998,8 @@ if (typeof customElements !== "undefined") {
       if (this.#soundCheck) clearTimeout(this.#soundCheck);
       this.#soundCheck = null;
       this.#soundHeld = false;
+      this.#listen(null);
+      this.#speaker.close();
     }
 
     /** Subscribe to the state of the door station of the card, once. */
@@ -1018,7 +1079,8 @@ if (typeof customElements !== "undefined") {
       const entry = this.#station?.entry_id;
       const call = this.#snapshot?.call;
       // Within the tap: the sound of an answered or monitored door may start
-      if (key === "answer" || (key === "monitor" && !this.#monitoring)) this.#hearDoor();
+      if (key === "answer") this.#hearDoor("call");
+      if (key === "monitor" && !this.#monitoring) this.#hearDoor("camera");
       if (key === "monitor") {
         this.#monitoring = !this.#monitoring;
         this.#render();
@@ -1181,6 +1243,11 @@ if (typeof customElements !== "undefined") {
       if (this.#snapshot && !this.#snapshot.registered) warnings.push(texts.unregistered);
       if (this.#ringer.ringing && this.#ringer.blocked) warnings.push(texts.tap_for_sound);
       const screen = screenOf(state, this.#monitoring, this.#microphone !== null);
+      // The call's sound: heard on every card that shows the answered call, muted while
+      // you talk; a browser that allows sound without a new tap plays it at once
+      this.#listen(state === "answered" ? (this.#snapshot?.call?.id ?? null) : null);
+      this.#speaker.mute(!screen.audible || screen.source !== "call");
+      if (screen.source === "call" && this.#speaker.held) this.#speaker.unlock();
       if (screen.audible) this.#checkSound();
       else this.#soundHeld = false;
       if (this.#soundHeld) warnings.push(texts.tap_to_hear);
@@ -1209,7 +1276,7 @@ if (typeof customElements !== "undefined") {
     /**
      * @param {Hass} hass
      * @param {Station} station
-     * @param {{ live: boolean, audible: boolean }} screen
+     * @param {{ live: boolean, audible: boolean, source: "call" | "camera" | null }} screen
      */
     #renderScreen(hass, station, screen) {
       const { media } = /** @type {Parts} */ (this.#parts);
@@ -1218,16 +1285,17 @@ if (typeof customElements !== "undefined") {
         media.replaceChildren();
         return;
       }
-      if (screen.live && this.#streamDefined === null) {
-        // Once: the frontend defines its camera stream with its picture cards
+      if (this.#streamDefined === null) {
+        // Once, before any call: the frontend defines its camera stream with its
+        // picture cards, and the screen goes live the moment it is there
         this.#streamDefined = false;
-        loadCameraStream(station.camera ?? "").then((defined) => {
-          this.#streamDefined = defined;
+        loadCameraStream(station.camera ?? "").then(() => {
+          this.#streamDefined = true;
           this.#render();
         });
       }
       if (!screen.live || !this.#streamDefined) {
-        // The camera's picture: outside a call, or while (or if never) the stream loads
+        // The camera's picture: outside a call, or while the stream loads
         this.#stream?.remove();
         this.#stream = null;
         const picture = camera.attributes.entity_picture;
@@ -1241,7 +1309,8 @@ if (typeof customElements !== "undefined") {
         media.replaceChildren(this.#stream);
       }
       this.#stream.stateObj = camera;
-      this.#stream.muted = !screen.audible;
+      // During a call the door is heard from the call: the camera would play it twice
+      this.#stream.muted = !screen.audible || screen.source !== "camera";
       this.#stream.fitMode = "cover";
     }
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -88,6 +89,7 @@ async def test_unknown_entries(
         {"type": f"{DOMAIN}/call", "call_id": "x", "action": "answer"},
         {"type": f"{DOMAIN}/open_door"},
         {"type": f"{DOMAIN}/talk"},
+        {"type": f"{DOMAIN}/listen", "call_id": "x"},
     ):
         await client.send_json_auto_id({**command, "entry_id": "nope"})
         reply = await client.receive_json()
@@ -288,3 +290,40 @@ async def test_a_speaker_that_does_not_open(
     )
     reply = await client.receive_json()
     assert reply["error"]["code"] == "talk_failed"
+
+
+async def test_listening_to_the_door(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    loaded: MockConfigEntry,
+    server: FakeCallServer,
+) -> None:
+    """The door's sound of the answered call comes as it is sent, and only its own."""
+    client = await hass_ws_client(hass)
+    call = server.ring()
+    await client.send_json_auto_id(
+        {"type": f"{DOMAIN}/listen", "entry_id": loaded.entry_id, "call_id": call.id}
+    )
+    listening = await client.receive_json()
+    assert listening["success"]
+    # Nothing before the answer, nor of another call, nor of another door
+    server.sound(call, b"ringing")
+    server.sound(server.ring(door="192.0.2.99", call_id="call-2"), b"another door")
+    await server.answer(call.id)
+    other = server.ring(call_id="call-3")
+    await server.answer(other.id)
+    server.sound(other, b"another call")
+    server.sound(call, bytes(range(40)))
+    event = (await client.receive_json())["event"]
+    assert event == {
+        "audio": base64.b64encode(bytes(range(40))).decode(),
+        "codec": FakeTalkback.codec,
+    }
+
+    await client.send_json_auto_id(
+        {"type": "unsubscribe_events", "subscription": listening["id"]}
+    )
+    assert (await client.receive_json())["success"]
+    server.sound(call, b"after")
+    await client.send_json_auto_id({"type": "ping"})
+    assert (await client.receive_json())["type"] == "pong"

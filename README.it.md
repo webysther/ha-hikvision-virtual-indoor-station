@@ -31,7 +31,8 @@ parli, riagganci o rifiuti la chiamata, e apri la porta.
   nessun add-on, server SIP, broker MQTT o account cloud da configurare accanto.
 - **Ibrida, il meglio di ogni protocollo.** SIP porta la chiamata, come il
   citofono si aspetta da un posto interno; RTP porta la tua voce alla porta, nei
-  pacchetti che riproduce meglio; RTSP porta l'immagine e il suono; ISAPI apre le
+  pacchetti che riproduce meglio, e riporta la voce del visitatore una volta
+  risposto; RTSP porta l'immagine, e il suono mentre monitori; ISAPI apre le
   porte e parla dal suo altoparlante fuori da una chiamata.
 - **Platinum dal primo giorno.** Segue tutte le regole del livello più alto della
   [scala di qualità delle integrazioni](https://www.home-assistant.io/docs/quality_scale/):
@@ -52,8 +53,9 @@ parli, riagganci o rifiuti la chiamata, e apri la porta.
   non tocca mai il visitatore successivo.
 - **Parla con il visitatore.** Durante una chiamata il tuo microfono va alla
   porta con la chiamata; fuori da una chiamata, dall'altoparlante del citofono.
-- **Vedi e senti il visitatore**: la telecamera del citofono, con il suo suono,
-  riprodotta con WebRTC.
+- **Vedi e senti il visitatore**: la telecamera del citofono, riprodotta con
+  WebRTC, e la voce del visitatore dalla chiamata stessa una volta risposto, in
+  ogni browser (anche un iPad).
 - **Apri le porte** collegate al citofono, un pulsante per ciascuna.
 - **Regola il citofono** da Home Assistant: l'immagine della sua telecamera, i
   suoi volumi, quanto resta aperta ogni porta e il suo messaggio vocale, entro
@@ -196,8 +198,11 @@ show_ringer: true
 I browser trattengono il suono di una pagina finché non la si tocca: la scheda
 chiede un tocco se la porta suona prima. Anche i telefoni riproducono il suono
 della porta solo dopo un tocco: **Rispondi** e **Monitora** lo accendono, e quando
-si risponde da una notifica la scheda chiede un tocco per sentire la porta. Per
-parlare serve Home Assistant aperto in HTTPS.
+si risponde da una notifica la scheda chiede un tocco per sentire la porta.
+Durante una chiamata la voce del visitatore arriva dalla chiamata, non dalla
+telecamera: anche un browser il cui lettore della telecamera non ha il suono
+G.711 (un iPad, che riproduce la telecamera con HLS) lo sente. Per parlare serve
+Home Assistant aperto in HTTPS.
 
 ## App per dispositivi mobili
 

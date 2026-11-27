@@ -103,6 +103,7 @@ class IndoorStation:
         self._was_registered = False
         self._listeners: list[Callable[[], None]] = []
         self._call_listeners: list[Callable[[DoorCall], None]] = []
+        self._audio_listeners: list[Callable[[DoorCall, bytes], None]] = []
 
     @property
     def unique_id(self) -> str:
@@ -209,6 +210,20 @@ class IndoorStation:
         """Be told of each change of a call; returns the way to stop."""
         self._call_listeners.append(listener)
         return lambda: self._call_listeners.remove(listener)
+
+    @callback
+    def async_add_audio_listener(
+        self, listener: Callable[[DoorCall, bytes], None]
+    ) -> Callable[[], None]:
+        """Hear the door's sound of the answered calls; return what stops it."""
+        self._audio_listeners.append(listener)
+        return lambda: self._audio_listeners.remove(listener)
+
+    @callback
+    def door_audio(self, call: DoorCall, payload: bytes) -> None:
+        """Hand on 40 ms of the door's sound of a call (G.711, as it came)."""
+        for listener in list(self._audio_listeners):
+            listener(call, payload)
 
     @callback
     def call_changed(self, call: DoorCall) -> None:
