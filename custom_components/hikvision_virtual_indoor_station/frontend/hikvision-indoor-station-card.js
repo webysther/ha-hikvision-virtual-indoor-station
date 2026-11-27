@@ -64,7 +64,7 @@ export { CARD };
  * @typedef {{ type: string, device_id?: string, talk_mode?: TalkMode,
  *   shortcuts?: Array<string | Shortcut>, show_name?: boolean, show_state?: boolean,
  *   show_monitor?: boolean, show_talk?: boolean, show_ringer?: boolean,
- *   columns?: number }} CardConfig
+ *   columns?: number, rows?: number }} CardConfig
  * @typedef {{ media: HTMLElement, overlay: HTMLElement, name: HTMLElement, state: HTMLElement,
  *   warning: HTMLElement, keys: HTMLElement, extra: HTMLElement,
  *   buttons: Map<KeyName, HTMLButtonElement> }} Parts
@@ -103,6 +103,18 @@ export const HIDDEN_KEYS = /** @type {const} */ ({
 });
 /** The most keys a row can take (`columns`): beyond, a key is narrower than its icon. */
 export const MAX_COLUMNS = 12;
+/**
+ * The fewest keys a row takes in the editor's list: one key a row stacks the keys down the
+ * whole card (a configuration written in YAML may still ask for it).
+ */
+export const MIN_LISTED_COLUMNS = 2;
+/**
+ * The most rows of keys (`rows`): a door station has five keys, a door or two and a few
+ * shortcuts, two keys a row at least on a phone.
+ */
+export const MAX_ROWS = 4;
+/** The choice of the editor's lists that leaves the keys in one row while they fit. */
+export const AUTO = "auto";
 
 /**
  * How long after the door should be heard the card looks whether the browser plays its
@@ -445,6 +457,12 @@ export function checkConfig(config) {
   ) {
     throw new Error(`columns must be a whole number from 1 to ${MAX_COLUMNS}`);
   }
+  if (
+    config.rows !== undefined &&
+    !(Number.isInteger(config.rows) && config.rows >= 1 && config.rows <= MAX_ROWS)
+  ) {
+    throw new Error(`rows must be a whole number from 1 to ${MAX_ROWS}`);
+  }
   if (config.shortcuts !== undefined) {
     const valid = (/** @type {any} */ item) =>
       typeof item === "string" ||
@@ -454,6 +472,20 @@ export function checkConfig(config) {
     }
   }
   return config;
+}
+
+/**
+ * Return how many keys each row of the card takes, or null for one row while they fit:
+ * `columns` keys a row (no more than there are keys), or as few as fill `rows` rows.
+ *
+ * @param {CardConfig} config
+ * @param {number} count The keys the card shows: its own, the doors and the shortcuts.
+ */
+export function keyColumns(config, count) {
+  if (count < 1) return null;
+  if (config.columns) return Math.min(config.columns, count);
+  if (config.rows) return Math.ceil(count / config.rows);
+  return null;
 }
 
 /**
@@ -534,8 +566,18 @@ export function editorData(config) {
     talk_mode: config.talk_mode ?? "hold",
     shortcuts: shortcutsOf(config).map((shortcut) => shortcut.entity),
     ...Object.fromEntries(SHOW_OPTIONS.map((option) => [option, config[option] ?? true])),
-    ...(config.columns ? { columns: config.columns } : {}),
+    columns: config.columns ? String(config.columns) : AUTO,
+    rows: config.rows ? String(config.rows) : AUTO,
   };
+}
+
+/**
+ * Return the number chosen in a list of the editor, or undefined for `AUTO`.
+ *
+ * @param {string | number | undefined} choice
+ */
+function chosenNumber(choice) {
+  return choice === undefined || choice === AUTO ? undefined : Number(choice);
 }
 
 /**
@@ -545,7 +587,7 @@ export function editorData(config) {
  * @param {CardConfig} config
  * @param {{ device_id?: string, talk_mode?: TalkMode, shortcuts?: string[],
  *   show_name?: boolean, show_state?: boolean, show_monitor?: boolean,
- *   show_talk?: boolean, show_ringer?: boolean, columns?: number }} value
+ *   show_talk?: boolean, show_ringer?: boolean, columns?: string, rows?: string }} value
  * @returns {CardConfig}
  */
 export function configFromEditor(config, value) {
@@ -560,13 +602,35 @@ export function configFromEditor(config, value) {
   });
   if (shortcuts.length) result.shortcuts = shortcuts;
   for (const option of SHOW_OPTIONS) if (value[option] === false) result[option] = false;
-  if (value.columns) result.columns = value.columns;
+  // The keys are laid out by columns or by rows: the one just chosen wins
+  const columns = chosenNumber(value.columns);
+  const rows = chosenNumber(value.rows);
+  if (rows && (!columns || rows !== config.rows)) result.rows = rows;
+  else if (columns) result.columns = columns;
   return result;
 }
 
 /**
+ * Return a list of the editor: `AUTO`, then the numbers from `first` to `last`.
+ *
+ * @param {string} auto The text of `AUTO`.
+ * @param {number} first
+ * @param {number} last
+ */
+function numberList(auto, first, last) {
+  const numbers = Array.from({ length: last - first + 1 }, (_, index) => String(first + index));
+  return {
+    select: {
+      mode: "dropdown",
+      options: [{ value: AUTO, label: auto }, ...numbers.map((n) => ({ value: n, label: n }))],
+    },
+  };
+}
+
+/**
  * Return the form of the editor: the door station, the way to talk, the shortcuts, whether
- * the keys show their names, and whether the screen shows its band (name and state).
+ * the keys show their names, whether the screen shows its band (name and state), and how
+ * the keys are laid out (keys a row, or rows), side by side.
  *
  * @param {Hass} hass
  */
@@ -598,9 +662,20 @@ export function editorSchema(hass) {
     { name: "show_talk", label: texts.editor_show_talk, selector: { boolean: {} } },
     { name: "show_ringer", label: texts.editor_show_ringer, selector: { boolean: {} } },
     {
-      name: "columns",
-      label: texts.editor_columns,
-      selector: { number: { min: 1, max: MAX_COLUMNS, mode: "box" } },
+      name: "",
+      type: "grid",
+      schema: [
+        {
+          name: "columns",
+          label: texts.editor_columns,
+          selector: numberList(texts.editor_auto, MIN_LISTED_COLUMNS, MAX_COLUMNS),
+        },
+        {
+          name: "rows",
+          label: texts.editor_rows,
+          selector: numberList(texts.editor_auto, 1, MAX_ROWS),
+        },
+      ],
     },
   ];
 }
@@ -709,6 +784,7 @@ if (typeof customElements !== "undefined") {
     .keys { display: flex; flex-wrap: wrap; justify-content: space-around; align-items: stretch;
       gap: 2px; padding: 8px; }
     .extra { display: contents; }
+    .keys.columned { justify-content: center; }
     .keys.columned > .key, .keys.columned .key {
       flex: 0 0 calc((100% - (var(--columns) - 1) * 2px) / var(--columns));
       min-width: 0; max-width: none; }
@@ -1226,9 +1302,6 @@ if (typeof customElements !== "undefined") {
       parts.keys.hidden = false;
       parts.keys.classList.toggle("no-names", this.#config.show_name === false);
       parts.overlay.hidden = this.#config.show_state === false;
-      const columns = this.#config.columns;
-      parts.keys.classList.toggle("columned", Boolean(columns));
-      if (columns) parts.keys.style.setProperty("--columns", String(columns));
       parts.name.textContent = station.name;
       const label = screenLabel(hass, state, {
         monitoring: this.#monitoring,
@@ -1256,6 +1329,11 @@ if (typeof customElements !== "undefined") {
       this.#renderScreen(hass, station, screen);
       this.#renderKeys(hass, state, talkable);
       this.#renderExtra(hass, station);
+      // A grid of keys: full rows line up, and a last row with fewer keys is centred
+      const shown = parts.keys.querySelectorAll(".key:not([hidden])").length;
+      const columns = keyColumns(this.#config, shown);
+      parts.keys.classList.toggle("columned", columns !== null);
+      if (columns !== null) parts.keys.style.setProperty("--columns", String(columns));
     }
 
     /** @param {boolean} answered Tick every second while a call is answered. */

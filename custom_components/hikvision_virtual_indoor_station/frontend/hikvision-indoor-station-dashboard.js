@@ -189,6 +189,8 @@ export const TEXTS = {
     editor_show_talk: "Show the Push to talk key",
     editor_show_ringer: "Show the ringer key",
     editor_columns: "Columns",
+    editor_rows: "Rows",
+    editor_auto: "Automatic",
   },
   it: {
     description: "Il posto interno di un citofono Hikvision: rispondi, parla, apri la porta.",
@@ -224,6 +226,8 @@ export const TEXTS = {
     editor_show_talk: "Mostra il tasto Premi per parlare",
     editor_show_ringer: "Mostra il tasto della suoneria",
     editor_columns: "Colonne",
+    editor_rows: "Righe",
+    editor_auto: "Automatico",
   },
   "pt-BR": {
     description: "O monitor interno de um porteiro Hikvision: atender, falar, abrir a porta.",
@@ -259,6 +263,8 @@ export const TEXTS = {
     editor_show_talk: "Mostrar a tecla Aperte para falar",
     editor_show_ringer: "Mostrar a tecla da campainha",
     editor_columns: "Colunas",
+    editor_rows: "Linhas",
+    editor_auto: "Automático",
   },
 };
 

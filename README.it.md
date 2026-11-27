@@ -191,8 +191,10 @@ show_state: true
 show_monitor: true
 show_talk: true
 show_ringer: true
-# Tasti per riga (da 1 a 12); senza, una riga finché ci stanno
-# columns: 5
+# Tasti per riga (da 1 a 12), o righe di tasti (da 1 a 4); senza, una
+# riga finché ci stanno. Un'ultima riga con meno tasti sta al centro
+# columns: 3
+# rows: 2
 ```
 
 I browser trattengono il suono di una pagina finché non la si tocca: la scheda

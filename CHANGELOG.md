@@ -49,7 +49,8 @@ station.
   has none), `show_name: false` leaves the keys with their icons only,
   `show_state: false` takes the name and the state off the camera,
   `show_monitor`, `show_talk` and `show_ringer: false` hide those keys, and
-  `columns` sets how many keys a row takes. A
+  `columns` sets how many keys a row takes, or `rows` how many rows they take
+  (a last row with fewer keys is centred). A
   warning shows when the door station is not registered.
 - Push-to-talk on the card: hold the button (or the space bar on it), or press
   it once to talk and once to stop (`talk_mode: toggle`). Your voice goes with
@@ -125,6 +126,9 @@ station.
   an iPad, whose camera player (Home Assistant's HLS) has no G.711 sound, now
   hears them. The camera's sound is muted during the call, so that the visitor is
   not heard twice, and plays again while monitoring.
+- The card's editor chooses the columns from a list (Automatic, then 2 to 12)
+  and the rows of keys too (`rows`); full rows of keys line up, and a last row
+  with fewer keys is centred instead of spread across the card.
 - The card goes live as soon as the door rings, also in a panel just opened from a
   notification: it loads the camera player as soon as it shows, and no longer
   keeps the picture when the frontend takes more than 5 seconds to load it.

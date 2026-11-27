@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  AUTO,
   CARD,
+  MAX_COLUMNS,
+  MAX_ROWS,
   PANEL,
   RING,
   Ringer,
@@ -20,6 +23,7 @@ import {
   editorData,
   editorSchema,
   elapsed,
+  keyColumns,
   keyName,
   locksOf,
   openDoorMessage,
@@ -111,6 +115,10 @@ describe("configuration", () => {
     assert.throws(() => checkConfig({ type: CARD, show_talk: "no" }));
     for (const columns of [0, 2.5, 13, "4"]) {
       assert.throws(() => checkConfig({ type: CARD, columns }));
+    }
+    assert.deepEqual(checkConfig({ type: CARD, rows: 2 }), { type: CARD, rows: 2 });
+    for (const rows of [0, 1.5, MAX_ROWS + 1, "2"]) {
+      assert.throws(() => checkConfig({ type: CARD, rows }));
     }
   });
 
@@ -348,6 +356,8 @@ describe("the editor", () => {
       show_monitor: true,
       show_talk: true,
       show_ringer: true,
+      columns: AUTO,
+      rows: AUTO,
     });
     // The names given in YAML stay; the default way to talk is left out
     assert.deepEqual(
@@ -380,16 +390,37 @@ describe("the editor", () => {
     });
     assert.deepEqual(configFromEditor({ type: CARD }, { show_state: true }), { type: CARD });
     assert.equal(editorData({ type: CARD, show_state: false }).show_state, false);
-    // The keys that can be hidden, and how many keys a row takes
+    // The keys that can be hidden, and how many keys a row takes, chosen from a list
     assert.deepEqual(
       configFromEditor(
         { type: CARD },
-        { show_monitor: false, show_talk: false, show_ringer: false, columns: 4 },
+        { show_monitor: false, show_talk: false, show_ringer: false, columns: "4", rows: AUTO },
       ),
       { type: CARD, show_monitor: false, show_talk: false, show_ringer: false, columns: 4 },
     );
-    assert.equal(editorData({ type: CARD, columns: 4 }).columns, 4);
-    assert.equal("columns" in editorData({ type: CARD }), false);
+    assert.equal(editorData({ type: CARD, columns: 4 }).columns, "4");
+    assert.equal(editorData({ type: CARD }).columns, AUTO);
+    assert.equal(editorData({ type: CARD }).rows, AUTO);
+    assert.deepEqual(configFromEditor({ type: CARD }, { columns: AUTO, rows: AUTO }), {
+      type: CARD,
+    });
+  });
+
+  it("lays the keys out by columns or by rows, the one just chosen winning", () => {
+    const byColumns = { type: CARD, columns: 3 };
+    // Rows chosen on a card laid out by columns
+    assert.deepEqual(configFromEditor(byColumns, { columns: "3", rows: "2" }), {
+      type: CARD,
+      rows: 2,
+    });
+    // Columns chosen on a card laid out by rows
+    const byRows = { type: CARD, rows: 2 };
+    assert.deepEqual(configFromEditor(byRows, { columns: "4", rows: "2" }), {
+      type: CARD,
+      columns: 4,
+    });
+    assert.deepEqual(configFromEditor(byRows, { columns: AUTO, rows: "2" }), byRows);
+    assert.equal(editorData(byRows).rows, "2");
   });
 
   it("offers only the door stations of the integration, in the language of the user", () => {
@@ -405,9 +436,26 @@ describe("the editor", () => {
         "show_monitor",
         "show_talk",
         "show_ringer",
-        "columns",
+        "",
       ],
     );
+    // The layout of the keys, side by side: Automatic first, then the numbers
+    const layout = schema.at(-1);
+    assert.equal(layout.type, "grid");
+    assert.deepEqual(
+      layout.schema.map((field) => [field.name, field.label]),
+      [
+        ["columns", "Colunas"],
+        ["rows", "Linhas"],
+      ],
+    );
+    const [columns, rows] = layout.schema.map((field) =>
+      field.selector.select.options.map((option) => option.value),
+    );
+    assert.deepEqual(columns.slice(0, 3), [AUTO, "2", "3"]);
+    assert.equal(columns.at(-1), String(MAX_COLUMNS));
+    assert.deepEqual(rows, [AUTO, "1", "2", "3", "4"]);
+    assert.equal(layout.schema[0].selector.select.options[0].label, "Automático");
     assert.equal(schema[3].label, "Mostrar nome");
     assert.equal(schema[4].label, "Mostrar estado");
     assert.deepEqual(schema[4].selector, { boolean: {} });
@@ -424,6 +472,17 @@ describe("the editor", () => {
 });
 
 describe("the keys under the screen", () => {
+  it("take as many columns as asked, or as fill the rows asked for", () => {
+    assert.equal(keyColumns({ type: CARD }, 6), null);
+    assert.equal(keyColumns({ type: CARD, columns: 4 }, 6), 4);
+    // No more columns than keys
+    assert.equal(keyColumns({ type: CARD, columns: 8 }, 6), 6);
+    assert.equal(keyColumns({ type: CARD, rows: 2 }, 7), 4);
+    assert.equal(keyColumns({ type: CARD, rows: 3 }, 6), 2);
+    assert.equal(keyColumns({ type: CARD, columns: 3, rows: 3 }, 6), 3);
+    assert.equal(keyColumns({ type: CARD, rows: 2 }, 0), null);
+  });
+
   const keys = (now) => deviceKeys(now).map((key) => [key.key, key.enabled]);
 
   it("are always the same, lit when the state allows them", () => {

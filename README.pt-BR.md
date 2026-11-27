@@ -188,8 +188,10 @@ show_state: true
 show_monitor: true
 show_talk: true
 show_ringer: true
-# Teclas por linha (1 a 12); sem isso, uma linha enquanto couberem
-# columns: 5
+# Teclas por linha (1 a 12), ou linhas de teclas (1 a 4); sem eles, uma
+# linha enquanto couberem. Uma última linha com menos teclas fica centralizada
+# columns: 3
+# rows: 2
 ```
 
 Os navegadores seguram o som de uma página até alguém tocar nela: o card pede um

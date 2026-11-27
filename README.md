@@ -185,8 +185,10 @@ show_state: true
 show_monitor: true
 show_talk: true
 show_ringer: true
-# Keys per row (1 to 12); without it, one row while they fit
-# columns: 5
+# Keys per row (1 to 12), or rows of keys (1 to 4); without them, one
+# row while they fit. A last row with fewer keys is centred
+# columns: 3
+# rows: 2
 ```
 
 Browsers hold the sound of a page until it is tapped: the card asks for a tap
